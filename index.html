@@ -223,68 +223,89 @@
     });
 
     try {
-      const res = await fetch("http://localhost:8000/calculate", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload)
-      });
+  const isLocal =
+    location.hostname === "localhost" ||
+    location.hostname === "127.0.0.1";
 
-      const data = await res.json();
+  let data;
 
-      if (res.ok) {
-        const savedKG = data.annual_avoided_kgCO2e;
-        const treeAbsorbPerYear = 21.77;
-        const carPerMile = 0.271;
-        const householdKwhPerYear = 3700;
-        const homeKwh = data.annual_kwh;
+  if (isLocal) {
+    // 🔹 REAL BACKEND (local FastAPI)
+    const res = await fetch("http://localhost:8000/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-        const trees = (savedKG / treeAbsorbPerYear).toFixed(1);
-        const miles = (savedKG / carPerMile).toFixed(0);
-        const homes = (homeKwh / householdKwhPerYear).toFixed(1);
+    data = await res.json();
 
-        comparisonBox.innerHTML = `
-          🌳 Equivalent to planting <strong>${trees}</strong> trees absorbing CO₂ for a year.<br>
-          🚗 Equivalent to avoiding <strong>${miles}</strong> car miles driven.<br>
-          🏠 Enough electricity to power <strong>${homes}</strong> average UK homes for a year.
-        `;
-
-        const months = Object.keys(data.monthly_kwh).map(m =>
-          ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]
-        );
-        const values = Object.values(data.monthly_kwh);
-
-        if (chartInstance) chartInstance.destroy();
-
-        chartInstance = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: months,
-            datasets: [{
-              label: "Monthly PV Generation (kWh)",
-              data: values,
-              backgroundColor: "#facc15",
-              borderColor: "#f59e0b",
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              y: { beginAtZero: true }
-            },
-            responsive: true
-          }
-        });
-
-      } else {
-        comparisonBox.innerHTML = "⚠️ Error: " + (data.detail || "Unknown");
-      }
-    } catch (err) {
-      comparisonBox.innerHTML = "❌ Network Error: " + err.message;
+    if (!res.ok) {
+      throw new Error(data.detail || "Calculation failed");
     }
 
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Calculate";
+  } else {
+    // 🔹 DEMO MODE (GitHub Pages)
+    data = {
+      annual_avoided_kgCO2e: 185000,
+      annual_kwh: 920000,
+      monthly_kwh: {
+        1: 42000, 2: 48000, 3: 72000, 4: 86000,
+        5: 102000, 6: 118000, 7: 125000, 8: 112000,
+        9: 88000, 10: 72000, 11: 52000, 12: 43000
+      },
+      demo: true
+    };
+  }
+
+  /* ===== EXISTING DISPLAY LOGIC (unchanged) ===== */
+
+  const savedKG = data.annual_avoided_kgCO2e;
+  const treeAbsorbPerYear = 21.77;
+  const carPerMile = 0.271;
+  const householdKwhPerYear = 3700;
+  const homeKwh = data.annual_kwh;
+
+  const trees = (savedKG / treeAbsorbPerYear).toFixed(1);
+  const miles = (savedKG / carPerMile).toFixed(0);
+  const homes = (homeKwh / householdKwhPerYear).toFixed(1);
+
+  comparisonBox.innerHTML = `
+    🌳 Equivalent to planting <strong>${trees}</strong> trees absorbing CO₂ for a year.<br>
+    🚗 Equivalent to avoiding <strong>${miles}</strong> car miles driven.<br>
+    🏠 Enough electricity to power <strong>${homes}</strong> average UK homes for a year.
+    ${data.demo ? `<br><br><em>Demo values shown. Backend calculation engine runs in Python.</em>` : ""}
+  `;
+
+  const months = Object.keys(data.monthly_kwh).map(m =>
+    ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]
+  );
+  const values = Object.values(data.monthly_kwh);
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: months,
+      datasets: [{
+        label: "Monthly PV Generation (kWh)",
+        data: values,
+        backgroundColor: "#facc15",
+        borderColor: "#f59e0b",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: { y: { beginAtZero: true } },
+      responsive: true
+    }
   });
+
+} catch (err) {
+  comparisonBox.innerHTML = "❌ Error: " + err.message;
+}
+
 </script>
 
 </body>
