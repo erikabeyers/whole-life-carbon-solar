@@ -1,0 +1,44 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from pvlib.iotools import get_pvgis_hourly
+
+LAT = 55.99  # latitude for Edinburgh, UK
+LON = -3.59 # longitude for Edinburgh, UK
+YEAR = 2023      # pick a year available in PVGIS for "hourly" series
+
+# PVGIS returns a pandas DataFrame + metadata
+data, meta = get_pvgis_hourly(
+    latitude=LAT,
+    longitude=LON,
+    start=YEAR,
+    end=YEAR,
+    raddatabase="PVGIS-SARAH3",  # common choice; PVGIS also supports others
+    components=True,            # get GHI/DNI/DHI components if available
+    surface_tilt=0,             # 0 = horizontal; set to your tilt if you want POA
+    surface_azimuth=180,        # 180 = south-facing in N hemisphere; adjust as needed
+    outputformat="json"
+)
+
+data["poa_global"] = (
+    data["poa_direct"]
+    + data["poa_sky_diffuse"]
+    + data["poa_ground_diffuse"]
+)
+
+# PVGIS hourly data typically includes columns like: 'G(h)', 'Gb(n)', 'Gd(h)', 'T2m', etc.
+print(data.head())
+print("Columns:", list(data.columns))
+
+# Example plot: global horizontal irradiation (Wh/m^2 per hour in many PVGIS outputs)
+col = "G(h)" if "G(h)" in data.columns else data.columns[0]
+
+y = data["poa_global"]
+
+plt.figure()
+plt.plot(y.index, y.values)
+plt.xlabel("Time")
+plt.ylabel("Plane-of-Array Irradiance (Wh/m²)")
+plt.title(f"PVGIS Plane-of-Array Irradiance at {LAT}, {LON}")
+plt.tight_layout()
+plt.show()
+
