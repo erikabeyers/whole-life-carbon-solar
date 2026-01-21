@@ -120,6 +120,76 @@
       line-height: 1.5;
     }
 
+     .framework {
+      margin-top: 2rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .framework h3 {
+      margin: 0 0 0.75rem;
+      color: #0f766e;
+      font-size: 1.25rem;
+    }
+
+    .framework p {
+      margin: 0 0 1rem;
+      color: #334155;
+    }
+
+    .framework-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .framework-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.9rem;
+    }
+
+    .framework-card h4 {
+      margin: 0 0 0.5rem;
+      color: #1f2937;
+      font-size: 1rem;
+    }
+
+    .framework-card ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.35rem;
+    }
+
+    .pill-now {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .pill-next {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .pill-later {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+
     canvas {
       margin-top: 2rem;
       background: #fff;
@@ -176,7 +246,55 @@
     <input name="surface_azimuth" type="number" value="180">
 
     <button type="submit" id="submit-btn">Calculate</button>
+  
   </form>
+  
+  <section class="framework">
+    <h3>Whole-Life Carbon framework (target architecture)</h3>
+    <p>
+      This calculator is being aligned with a modular whole-life-carbon workflow, split into
+      site inputs, system sizing, demand, scenarios, and lifecycle reporting stages (A1-A5, B1-B7, C1-C4, D).
+      The current UI covers the core PV energy model; additional modules are planned below.
+    </p>
+    <div class="framework-grid">
+      <div class="framework-card">
+        <h4>Site + system inputs <span class="pill pill-now">Now</span></h4>
+        <ul>
+          <li>Latitude / longitude</li>
+          <li>Surface tilt + azimuth</li>
+          <li>PV capacity + PR</li>
+          <li>Reference year</li>
+        </ul>
+      </div>
+      <div class="framework-card">
+        <h4>Energy + demand <span class="pill pill-next">Next</span></h4>
+        <ul>
+          <li>Hourly PV (PVGIS)</li>
+          <li>Demand profiles</li>
+          <li>PV degradation</li>
+          <li>BESS dispatch</li>
+        </ul>
+      </div>
+      <div class="framework-card">
+        <h4>Embodied lifecycle <span class="pill pill-next">Next</span></h4>
+        <ul>
+          <li>Component bill of materials</li>
+          <li>A1-A5 materials + transport</li>
+          <li>B4 replacements</li>
+          <li>C1-C4 end-of-life</li>
+        </ul>
+      </div>
+      <div class="framework-card">
+        <h4>Reporting + outputs <span class="pill pill-later">Later</span></h4>
+        <ul>
+          <li>B6 operational savings</li>
+          <li>D export benefits</li>
+          <li>Stage totals + charts</li>
+          <li>Scenario comparison</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
   <canvas id="pvChart" width="600" height="300"></canvas>
   <div id="comparison"></div>
