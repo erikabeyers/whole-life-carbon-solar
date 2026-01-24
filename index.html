@@ -1,436 +1,993 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Solar Carbon Footprint Calculator ☀️</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Solar Carbon Footprint Calculator ☀️</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Chart.js and Leaflet.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+    <!-- Chart.js and Leaflet.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap"
+      rel="stylesheet"
+    />
 
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(#fdf6e3, #ecfdf5);
-      margin: 0;
-      padding: 2rem;
-      color: #1e293b;
-      position: relative;
-    }
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(#fdf6e3, #ecfdf5);
+        margin: 0;
+        padding: 2rem;
+        color: #1e293b;
+        position: relative;
+      }
 
-    body::before, body::after {
-      content: "";
-      position: fixed;
-      width: 150px;
-      height: 150px;
-      background-repeat: no-repeat;
-      background-size: contain;
-      opacity: 0.2;
-      z-index: -1;
-    }
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        width: 150px;
+        height: 150px;
+        background-repeat: no-repeat;
+        background-size: contain;
+        opacity: 0.2;
+        z-index: -1;
+      }
 
-   body::before {
-        background-image: url('sun-svgrepo-com.svg');
+      body::before {
+        background-image: url("sun-svgrepo-com.svg");
         top: 20px;
         left: 20px;
-    }
+      }
 
-    body::after {
-        background-image: url('leaf-svgrepo-com.svg');
+      body::after {
+        background-image: url("leaf-svgrepo-com.svg");
         bottom: 20px;
         right: 20px;
-    }
+      }
 
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: #ffffffe6;
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      position: relative;
-    }
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background: #ffffffe6;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        position: relative;
+      }
 
-    h2 {
-       font-family: 'Poppins', sans-serif;
+      h2 {
+        font-family: "Poppins", sans-serif;
         font-size: 2rem;
-        color: #10b981;
+        color: #b95110;
         text-align: center;
         margin-bottom: 1rem;
-    }
+      }
 
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: 500;
-    }
+      h3 {
+        font-family: "Poppins", sans-serif;
+        font-size: 1.3rem;
+        color: #059669;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
 
-    input {
-      width: 100%;
-      padding: 0.6rem;
-      margin-top: 0.3rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
+      label {
+        display: block;
+        margin-top: 1rem;
+        font-weight: 500;
+      }
 
-    button {
-      background: #f59e0b;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.2rem;
-      font-size: 1rem;
-      margin-top: 1.5rem;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-      transition: background 0.2s;
-    }
+      input,
+      select {
+        width: 100%;
+        padding: 0.6rem;
+        margin-top: 0.3rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+      }
 
-    button:hover {
-      background: #d97706;
-    }
+      button {
+        background: #f59e0b;
+        color: white;
+        border: none;
+        padding: 0.8rem 1.2rem;
+        font-size: 1rem;
+        margin-top: 1.5rem;
+        border-radius: 6px;
+        cursor: pointer;
+        width: 100%;
+        transition: background 0.2s;
+      }
 
-    .form-group {
-      display: flex;
-      gap: 1rem;
-    }
+      button:hover {
+        background: #d97706;
+      }
 
-    .form-group > div {
-      flex: 1;
-    }
+      .btn-secondary {
+        background: #3b82f6;
+        margin-top: 0.5rem;
+      }
 
-    #map {
-      height: 300px;
-      margin-top: 1rem;
-      border-radius: 8px;
-      border: 2px solid #a7f3d0;
-    }
+      .btn-secondary:hover {
+        background: #2563eb;
+      }
 
-    #comparison {
-      background: #ecfccb;
-      padding: 1rem;
-      margin-top: 1.5rem;
-      border-left: 4px solid #65a30d;
-      border-radius: 6px;
-      font-size: 1rem;
-      line-height: 1.5;
-    }
+      .form-group {
+        display: flex;
+        gap: 1rem;
+      }
 
-     .framework {
-      margin-top: 2rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 1.25rem;
-    }
+      .form-group > div {
+        flex: 1;
+      }
 
-    .framework h3 {
-      margin: 0 0 0.75rem;
-      color: #0f766e;
-      font-size: 1.25rem;
-    }
+      .search-container {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+      }
 
-    .framework p {
-      margin: 0 0 1rem;
-      color: #334155;
-    }
+      .search-container input {
+        flex: 1;
+        margin-top: 0;
+      }
 
-    .framework-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-    }
+      .search-container button {
+        margin-top: 0;
+        width: auto;
+        padding: 0.6rem 1.5rem;
+      }
 
-    .framework-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 0.9rem;
-    }
+      .collapsible {
+        background: #f0fdf4;
+        border: 2px solid #86efac;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1.5rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
 
-    .framework-card h4 {
-      margin: 0 0 0.5rem;
-      color: #1f2937;
-      font-size: 1rem;
-    }
+      .collapsible:hover {
+        background: #dcfce7;
+      }
 
-    .framework-card ul {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: #475569;
-      font-size: 0.95rem;
-    }
+      .collapsible-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        color: #059669;
+      }
 
-    .pill {
-      display: inline-block;
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin-left: 0.35rem;
-    }
+      .collapsible-content {
+        display: none;
+        margin-top: 1rem;
+      }
 
-    .pill-now {
-      background: #dcfce7;
-      color: #15803d;
-    }
+      .collapsible.active .collapsible-content {
+        display: block;
+      }
 
-    .pill-next {
-      background: #e0f2fe;
-      color: #0369a1;
-    }
+      .collapsible-toggle {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #059669;
+      }
 
-    .pill-later {
-      background: #fef3c7;
-      color: #b45309;
-    }
+      .transport-leg {
+        border: 1px solid #d1d5db;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+        background: #f9fafb;
+        position: relative;
+      }
 
+      .remove-leg-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.4rem 0.8rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+        width: auto;
+        display: block;
+        margin-left: auto;
+      }
 
-    canvas {
-      margin-top: 2rem;
-      background: #fff;
-      border-radius: 8px;
-      padding: 1rem;
-    }
+      .remove-leg-btn:hover {
+        background: #dc2626;
+      }
 
-    footer {
-      position: fixed;
-      bottom: 10px;
-      right: 20px;
-      font-size: 0.85rem;
-      color: #64748b;
-      font-style: italic;
-    }
-  </style>
-</head>
-<body>
+      /* Make the lat/lon row stack on small screens */
+      @media (max-width: 640px) {
+        body { padding: 1rem; }
+        .container { padding: 1.25rem; }
+        .form-group { flex-direction: column; }
+        .search-container { flex-direction: column; }
+        .search-container button { width: 100%; }
+      }
 
-<div class="container">
-  <h2>☀️ Solar Carbon Footprint Calculator</h2>
+      #map {
+        height: 300px;
+        margin-top: 1rem;
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+      }
 
-  <form id="solar-form">
-    <p><strong>Step 1:</strong> Click a location on the map to set Latitude and Longitude</p>
-    <div id="map"></div>
+      #comparison {
+        background: #ecfccb;
+        padding: 1rem;
+        margin-top: 1.5rem;
+        border-left: 4px solid #65a30d;
+        border-radius: 6px;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
 
-    <div class="form-group">
-      <div>
-        <label>Latitude:</label>
-        <input name="latitude" type="number" step="0.00001" placeholder="e.g. 55.9533">
+      .meta {
+        margin-top: 0.75rem;
+        font-size: 0.92rem;
+        color: #334155;
+        background: #eef2ff;
+        border-left: 4px solid #6366f1;
+        padding: 0.75rem;
+        border-radius: 6px;
+      }
+
+      .embodied-results {
+        margin-top: 0.75rem;
+        font-size: 0.92rem;
+        color: #78350f;
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 0.75rem;
+        border-radius: 6px;
+      }
+
+      .recommendation-box {
+        margin-top: 0.75rem;
+        font-size: 0.92rem;
+        color: #1e40af;
+        background: #dbeafe;
+        border-left: 4px solid #3b82f6;
+        padding: 0.75rem;
+        border-radius: 6px;
+      }
+
+      .chart-container {
+        margin-top: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        padding: 1rem;
+        position: relative;
+      }
+
+      .chart-total {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: 2px solid #e5e7eb;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #1e293b;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      canvas {
+        display: block;
+      }
+
+      footer {
+        position: fixed;
+        bottom: 10px;
+        right: 20px;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-style: italic;
+      }
+
+      .helper-text {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+      }
+
+      .material-breakdown {
+        margin-top: 0.5rem;
+        font-size: 0.88rem;
+      }
+
+      .material-breakdown-item {
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #fde68a;
+      }
+
+      .material-breakdown-item:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h2>Solar Carbon Footprint Calculator</h2>
+      <div class="helper-text">This is an embodied carbon tool, made to be those who wish to estimate, at a high level, the embodied carbon of the entire lifecycle of a Solar PV installation project. To accurately use this tool, the user must know the location and size of the proposed project. This tool makes use of open-source data and models, this should not be used for regulatory compliance or legal purposes.</div>
+
+      <form id="solar-form">
+        <p>
+          <strong>Step 1:</strong> Search for a location or click on the map
+        </p>
+
+        <div class="search-container">
+          <input 
+            id="location-search" 
+            type="text" 
+            placeholder="e.g. London, Edinburgh, Dublin..."
+          />
+          <button type="button" id="search-btn" class="btn-secondary">Search</button>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="form-group">
+          <div>
+            <label>Latitude:</label>
+            <input name="latitude" type="number" step="0.00001" />
+          </div>
+          <div>
+            <label>Longitude:</label>
+            <input name="longitude" type="number" step="0.00001" />
+          </div>
+        </div>
+
+        <div id="recommendation" class="recommendation-box" style="display:none;"></div>
+
+        <label>Year:</label>
+        <input name="year" type="number" value="2023" />
+
+        <label>Array Area (m²):</label>
+        <input name="area_m2" type="number" step="0.1" value="5000" />
+        <div class="helper-text">Total area of solar panels</div>
+
+        <label>Module Efficiency (%):</label>
+        <input name="module_efficiency" type="number" step="0.1" value="20" />
+        <div class="helper-text">Typical range: 15-23%. Modern panels: 18-22%</div>
+
+        <label>Surface Tilt (°):</label>
+        <input name="surface_tilt" type="number" value="30" />
+
+        <label>Surface Azimuth (°):</label>
+        <input name="surface_azimuth" type="number" value="180" />
+        <div class="helper-text">180° = South (Northern Hemisphere), 0° = North (Southern Hemisphere)</div>
+
+        <!-- Country dropdown with ISO3 codes -->
+        <label>Country (for grid emissions factor):</label>
+        <select name="country_code" id="country-select">
+          <option value="GBR">United Kingdom (GBR)</option>
+          <option value="IRL">Ireland (IRL)</option>
+          <option value="USA">United States (USA)</option>
+          <option value="CAN">Canada (CAN)</option>
+          <option value="FRA">France (FRA)</option>
+          <option value="DEU">Germany (DEU)</option>
+          <option value="ESP">Spain (ESP)</option>
+          <option value="ITA">Italy (ITA)</option>
+          <option value="NLD">Netherlands (NLD)</option>
+          <option value="BEL">Belgium (BEL)</option>
+          <option value="CHE">Switzerland (CHE)</option>
+          <option value="AUT">Austria (AUT)</option>
+          <option value="SWE">Sweden (SWE)</option>
+          <option value="NOR">Norway (NOR)</option>
+          <option value="DNK">Denmark (DNK)</option>
+          <option value="FIN">Finland (FIN)</option>
+          <option value="POL">Poland (POL)</option>
+          <option value="CZE">Czech Republic (CZE)</option>
+          <option value="PRT">Portugal (PRT)</option>
+          <option value="GRC">Greece (GRC)</option>
+          <option value="AUS">Australia (AUS)</option>
+          <option value="NZL">New Zealand (NZL)</option>
+          <option value="JPN">Japan (JPN)</option>
+          <option value="KOR">South Korea (KOR)</option>
+          <option value="CHN">China (CHN)</option>
+          <option value="IND">India (IND)</option>
+          <option value="BRA">Brazil (BRA)</option>
+          <option value="MEX">Mexico (MEX)</option>
+          <option value="ZAF">South Africa (ZAF)</option>
+          <option value="TUR">Turkey (TUR)</option>
+          <option value="RUS">Russia (RUS)</option>
+          <option value="SGP">Singapore (SGP)</option>
+          <option value="MYS">Malaysia (MYS)</option>
+          <option value="THA">Thailand (THA)</option>
+          <option value="IDN">Indonesia (IDN)</option>
+          <option value="PHL">Philippines (PHL)</option>
+          <option value="VNM">Vietnam (VNM)</option>
+          <option value="EGY">Egypt (EGY)</option>
+          <option value="ISR">Israel (ISR)</option>
+          <option value="SAU">Saudi Arabia (SAU)</option>
+          <option value="ARE">United Arab Emirates (ARE)</option>
+          <option value="ARG">Argentina (ARG)</option>
+          <option value="CHL">Chile (CHL)</option>
+          <option value="COL">Colombia (COL)</option>
+        </select>
+
+        <!-- OPTIONAL: override if user wants to manually force a factor -->
+        <label>
+          Carbon factor override (kgCO₂e/kWh) — optional:
+        </label>
+        <input
+          name="carbon_factor_override"
+          type="number"
+          step="0.001"
+          placeholder="Leave blank to use OWID automatically"
+        />
+
+        <!-- Collapsible Materials Section -->
+        <div class="collapsible" id="materials-section">
+          <div class="collapsible-header">
+            <span>🏗️ Materials (Embodied Carbon A1-A3) - Optional</span>
+            <span class="collapsible-toggle">+</span>
+          </div>
+          <div class="collapsible-content">
+            <p class="helper-text">Enter material quantities in kilograms. Leave blank or zero to skip.</p>
+            
+            <label>Aluminium (kg):</label>
+            <input name="materials.aluminium_kg" type="number" step="0.1" value="0" />
+            <div class="helper-text">Module frames, mounting rails (13.1 kgCO₂e/kg)</div>
+
+            <label>Steel (kg):</label>
+            <input name="materials.steel_kg" type="number" step="0.1" value="0" />
+            <div class="helper-text">Mounting structures, piles (1.64 kgCO₂e/kg)</div>
+
+            <label>Concrete (kg):</label>
+            <input name="materials.concrete_kg" type="number" step="0.1" value="0" />
+            <div class="helper-text">Foundations, ballast (0.134 kgCO₂e/kg)</div>
+
+            <label>Glass (kg):</label>
+            <input name="materials.glass_kg" type="number" step="0.1" value="0" />
+            <div class="helper-text">Module frontsheet (1.44 kgCO₂e/kg)</div>
+
+            <label>Silicon (PV cells) (kg):</label>
+            <input name="materials.silicon_pv_kg" type="number" step="0.1" value="0" />
+            <div class="helper-text">Photovoltaic cells (13.5 kgCO₂e/kg)</div>
+
+            <label>Copper (kg):</label>
+            <input name="materials.copper_kg" type="number" step="0.1" value="0" />
+            <div class="helper-text">Cabling, electrical components (2.71 kgCO₂e/kg)</div>
+          </div>
+        </div>
+
+        <!-- Collapsible Transport Section (A4) -->
+        <div class="collapsible" id="transport-section">
+          <div class="collapsible-header">
+            <span>🚛 Transport (A4) - Optional</span>
+            <span class="collapsible-toggle">+</span>
+          </div>
+          <div class="collapsible-content">
+            <p class="helper-text">Add transport legs from factory to site. Each leg needs mode, distance, and mass.</p>
+            
+            <div id="transport-legs-container">
+              <!-- Transport legs will be added here dynamically -->
+            </div>
+            
+            <button type="button" id="add-transport-leg-btn" class="btn-secondary">+ Add Transport Leg</button>
+            
+            <div class="helper-text" style="margin-top: 1rem;">
+              <strong>Available transport modes:</strong><br>
+              • truck_hgv (0.111 kgCO₂e/tkm) - Average HGV<br>
+              • truck_articulated (0.063 kgCO₂e/tkm) - Long-haul trucks<br>
+              • ship_container (0.006 kgCO₂e/tkm) - Container ships<br>
+              • rail_freight (0.027 kgCO₂e/tkm) - Rail freight
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="submit-btn">Calculate</button>
+      </form>
+
+      <div id="embodied-results" class="embodied-results" style="display:none;"></div>
+      <div id="transport-results" class="embodied-results" style="display:none;"></div>
+
+      <div class="chart-container" id="pv-chart-container" style="display:none;">
+        <div class="chart-total" id="pv-total"></div>
+        <canvas id="pvChart" width="600" height="300"></canvas>
       </div>
-      <div>
-        <label>Longitude:</label>
-        <input name="longitude" type="number" step="0.00001" placeholder="e.g. -3.1883">
+
+      <div class="chart-container" id="co2-chart-container" style="display:none;">
+        <div class="chart-total" id="co2-total"></div>
+        <canvas id="co2Chart" width="600" height="300"></canvas>
       </div>
+
+      <div id="comparison"></div>
+      <div id="meta" class="meta" style="display:none;"></div>
     </div>
 
-    <label>Year:</label>
-    <input name="year" type="number" value="2023">
+    <footer>Made by Riki B</footer>
 
-    <label>Capacity (MWp):</label>
-    <input name="capacity_mwp" type="number" step="0.001" value="1">
+    <script>
+      const form = document.getElementById("solar-form");
+      const submitBtn = document.getElementById("submit-btn");
+      const searchBtn = document.getElementById("search-btn");
+      const locationSearch = document.getElementById("location-search");
+      const comparisonBox = document.getElementById("comparison");
+      const metaBox = document.getElementById("meta");
+      const embodiedResultsBox = document.getElementById("embodied-results");
+      const transportResultsBox = document.getElementById("transport-results");
+      const recommendationBox = document.getElementById("recommendation");
+      const ctxPV = document.getElementById("pvChart").getContext("2d");
+      const ctxCO2 = document.getElementById("co2Chart").getContext("2d");
+      let pvChartInstance = null;
+      let co2ChartInstance = null;
 
-    <label>Performance Ratio (PR):</label>
-    <input name="pr" type="number" step="0.01" value="0.75">
+      // Transport leg counter
+      let transportLegCount = 0;
 
-    <label>Carbon Factor (kgCO₂e/kWh):</label>
-    <input name="carbon_factor" type="number" step="0.001" value="0.233">
+      // Collapsible section toggle for materials
+      document.getElementById("materials-section").addEventListener("click", function(e) {
+        if (e.target.tagName !== 'INPUT') {
+          this.classList.toggle("active");
+          const toggle = this.querySelector(".collapsible-toggle");
+          toggle.textContent = this.classList.contains("active") ? "−" : "+";
+        }
+      });
 
-    <label>Surface Tilt (°):</label>
-    <input name="surface_tilt" type="number" value="30">
+      // Collapsible section toggle for transport
+      document.getElementById("transport-section").addEventListener("click", function(e) {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SELECT') {
+          this.classList.toggle("active");
+          const toggle = this.querySelector(".collapsible-toggle");
+          toggle.textContent = this.classList.contains("active") ? "−" : "+";
+        }
+      });
 
-    <label>Surface Azimuth (°):</label>
-    <input name="surface_azimuth" type="number" value="180">
+      // Add transport leg functionality
+      function addTransportLeg() {
+        transportLegCount++;
+        const container = document.getElementById("transport-legs-container");
+        
+        const legDiv = document.createElement("div");
+        legDiv.className = "transport-leg";
+        legDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <strong style="color: #059669;">Transport Leg ${transportLegCount}</strong>
+          <button type="button" class="remove-leg-btn" style="margin: 0;">Remove</button>
+          </div>
+          
+          <label style="margin-top: 0;">Transport Mode:</label>
+          <select name="transport.${transportLegCount}.mode" required style="margin-bottom: 0.5rem;">
+            <option value="truck_hgv">Truck (HGV Average)</option>
+            <option value="truck_articulated">Truck (Articulated - Long Haul)</option>
+            <option value="truck_rigid">Truck (Rigid)</option>
+            <option value="ship_container">Ship (Container)</option>
+            <option value="ship_bulk">Ship (Bulk Carrier)</option>
+            <option value="rail_freight">Rail Freight</option>
+            <option value="air_freight">Air Freight (Not Recommended)</option>
+          </select>
+          
+          <label>Distance (km):</label>
+          <input name="transport.${transportLegCount}.distance_km" type="number" step="0.1" required style="margin-bottom: 0.5rem;" />
+          
+          <label>Mass (tonnes):</label>
+          <input name="transport.${transportLegCount}.mass_tonnes" type="number" step="0.01" required />
+          <div class="helper-text">Total mass of materials transported in this leg</div>
+        `;
+        
+        container.appendChild(legDiv);
+        
+        // Add remove functionality
+        legDiv.querySelector(".remove-leg-btn").addEventListener("click", function() {
+          legDiv.remove();
+        });
+      }
 
-    <button type="submit" id="submit-btn">Calculate</button>
-  
-  </form>
-  
-  <section class="framework">
-    <h3>Whole-Life Carbon framework (target architecture)</h3>
-    <p>
-      This calculator is being aligned with a modular whole-life-carbon workflow, split into
-      site inputs, system sizing, demand, scenarios, and lifecycle reporting stages (A1-A5, B1-B7, C1-C4, D).
-      The current UI covers the core PV energy model; additional modules are planned below.
-    </p>
-    <div class="framework-grid">
-      <div class="framework-card">
-        <h4>Site + system inputs <span class="pill pill-now">Now</span></h4>
-        <ul>
-          <li>Latitude / longitude</li>
-          <li>Surface tilt + azimuth</li>
-          <li>PV capacity + PR</li>
-          <li>Reference year</li>
-        </ul>
-      </div>
-      <div class="framework-card">
-        <h4>Energy + demand <span class="pill pill-next">Next</span></h4>
-        <ul>
-          <li>Hourly PV (PVGIS)</li>
-          <li>Demand profiles</li>
-          <li>PV degradation</li>
-          <li>BESS dispatch</li>
-        </ul>
-      </div>
-      <div class="framework-card">
-        <h4>Embodied lifecycle <span class="pill pill-next">Next</span></h4>
-        <ul>
-          <li>Component bill of materials</li>
-          <li>A1-A5 materials + transport</li>
-          <li>B4 replacements</li>
-          <li>C1-C4 end-of-life</li>
-        </ul>
-      </div>
-      <div class="framework-card">
-        <h4>Reporting + outputs <span class="pill pill-later">Later</span></h4>
-        <ul>
-          <li>B6 operational savings</li>
-          <li>D export benefits</li>
-          <li>Stage totals + charts</li>
-          <li>Scenario comparison</li>
-        </ul>
-      </div>
-    </div>
-  </section>
+      // Add transport leg button
+      document.getElementById("add-transport-leg-btn").addEventListener("click", addTransportLeg);
 
-  <canvas id="pvChart" width="600" height="300"></canvas>
-  <div id="comparison"></div>
-</div>
+      // Add one transport leg by default when section is opened (only once)
+      let transportSectionOpened = false;
+      document.getElementById("transport-section").addEventListener("click", function() {
+        if (this.classList.contains("active") && !transportSectionOpened) {
+          addTransportLeg();
+          transportSectionOpened = true;
+        }
+      });
 
-<footer>Made by Riki B</footer>
+      // Number formatting with commas
+      function formatNumber(num) {
+        return num.toLocaleString('en-US', { maximumFractionDigits: 1 });
+      }
 
-<script>
-  const form = document.getElementById("solar-form");
-  const submitBtn = document.getElementById("submit-btn");
-  const comparisonBox = document.getElementById("comparison");
-  const ctx = document.getElementById("pvChart").getContext("2d");
-  let chartInstance = null;
+      // Calculate recommended tilt and azimuth based on latitude
+      function getRecommendations(lat) {
+        let tilt, azimuth, notes;
+        
+        if (lat >= 0) {
+          // Northern Hemisphere
+          azimuth = 180; // South-facing
+          if (lat < 25) {
+            tilt = Math.round(lat * 0.87);
+            notes = "Low latitude - flatter tilt recommended";
+          } else if (lat < 50) {
+            tilt = Math.round(lat * 0.76 + 3.1);
+            notes = "Mid latitude - moderate tilt optimal";
+          } else {
+            tilt = Math.round(lat * 0.76 + 3.1);
+            notes = "High latitude - steeper tilt for winter sun";
+          }
+        } else {
+          // Southern Hemisphere
+          azimuth = 0; // North-facing
+          const absLat = Math.abs(lat);
+          if (absLat < 25) {
+            tilt = Math.round(absLat * 0.87);
+            notes = "Low latitude - flatter tilt recommended";
+          } else if (absLat < 50) {
+            tilt = Math.round(absLat * 0.76 + 3.1);
+            notes = "Mid latitude - moderate tilt optimal";
+          } else {
+            tilt = Math.round(absLat * 0.76 + 3.1);
+            notes = "High latitude - steeper tilt for winter sun";
+          }
+        }
 
-  // Initialize Leaflet map
-  const map = L.map('map').setView([55.9533, -3.1883], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
+        // Clamp tilt between 5 and 60 degrees
+        tilt = Math.max(5, Math.min(60, tilt));
 
-  let marker;
-  map.on('click', function (e) {
-    const { lat, lng } = e.latlng;
-    document.querySelector('input[name="latitude"]').value = lat.toFixed(5);
-    document.querySelector('input[name="longitude"]').value = lng.toFixed(5);
+        return { tilt, azimuth, notes };
+      }
 
-    if (marker) {
-      marker.setLatLng(e.latlng);
-    } else {
-      marker = L.marker(e.latlng).addTo(map);
-    }
-  });
+      // Update recommendations when coordinates change
+      function updateRecommendations() {
+        const latInput = document.querySelector('input[name="latitude"]');
+        const lat = parseFloat(latInput.value);
+        
+        if (!isNaN(lat) && lat >= -90 && lat <= 90) {
+          const rec = getRecommendations(lat);
+          const hemisphere = lat >= 0 ? "Northern" : "Southern";
+          
+          recommendationBox.style.display = "block";
+          recommendationBox.innerHTML = `
+            <strong>💡 Recommended for ${hemisphere} Hemisphere (${Math.abs(lat).toFixed(1)}°):</strong><br>
+            Tilt: <strong>${rec.tilt}°</strong> | Azimuth: <strong>${rec.azimuth}°</strong><br>
+            <em>${rec.notes}</em>
+          `;
+        } else {
+          recommendationBox.style.display = "none";
+        }
+      }
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Calculating...";
-    comparisonBox.innerHTML = "";
+      // Set map marker and update form
+      function setLocation(lat, lng) {
+        document.querySelector('input[name="latitude"]').value = lat.toFixed(5);
+        document.querySelector('input[name="longitude"]').value = lng.toFixed(5);
 
-    const formData = new FormData(form);
-    const payload = {};
-    formData.forEach((val, key) => {
-      if (val !== "") payload[key] = isNaN(val) ? val : parseFloat(val);
-    });
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng]).addTo(map);
+        }
 
-    try {
-  const isLocal =
-    location.hostname === "localhost" ||
-    location.hostname === "127.0.0.1";
+        map.setView([lat, lng], 10);
+        updateRecommendations();
+      }
 
-  let data;
+      // Search for location using Nominatim (OpenStreetMap)
+      async function searchLocation(query) {
+        if (!query.trim()) return;
 
-  if (isLocal) {
-    // 🔹 REAL BACKEND (local FastAPI)
-    const res = await fetch("http://localhost:8000/calculate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+        searchBtn.disabled = true;
+        searchBtn.textContent = "Searching...";
 
-    data = await res.json();
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+          );
+          const results = await response.json();
 
-    if (!res.ok) {
-      throw new Error(data.detail || "Calculation failed");
-    }
+          if (results && results.length > 0) {
+            const { lat, lon } = results[0];
+            setLocation(parseFloat(lat), parseFloat(lon));
+          } else {
+            alert("Location not found. Please try a different search term.");
+          }
+        } catch (error) {
+          alert("Search failed: " + error.message);
+        }
 
-  } else {
-    // 🔹 DEMO MODE (GitHub Pages)
-    data = {
-      annual_avoided_kgCO2e: 185000,
-      annual_kwh: 920000,
-      monthly_kwh: {
-        1: 42000, 2: 48000, 3: 72000, 4: 86000,
-        5: 102000, 6: 118000, 7: 125000, 8: 112000,
-        9: 88000, 10: 72000, 11: 52000, 12: 43000
-      },
-      demo: true
-    };
-  }
+        searchBtn.disabled = false;
+        searchBtn.textContent = "Search";
+      }
 
-  /* ===== EXISTING DISPLAY LOGIC (unchanged) ===== */
+      // Initialize Leaflet map
+      const map = L.map("map").setView([55.9533, -3.1883], 6);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
 
-  const savedKG = data.annual_avoided_kgCO2e;
-  const treeAbsorbPerYear = 21.77;
-  const carPerMile = 0.271;
-  const householdKwhPerYear = 3700;
-  const homeKwh = data.annual_kwh;
+      let marker;
+      
+      // Click on map to set location
+      map.on("click", function (e) {
+        const { lat, lng } = e.latlng;
+        setLocation(lat, lng);
+      });
 
-  const trees = (savedKG / treeAbsorbPerYear).toFixed(1);
-  const miles = (savedKG / carPerMile).toFixed(0);
-  const homes = (homeKwh / householdKwhPerYear).toFixed(1);
+      // Search button click
+      searchBtn.addEventListener("click", () => {
+        searchLocation(locationSearch.value);
+      });
 
-  comparisonBox.innerHTML = `
-    🌳 Equivalent to planting <strong>${trees}</strong> trees absorbing CO₂ for a year.<br>
-    🚗 Equivalent to avoiding <strong>${miles}</strong> car miles driven.<br>
-    🏠 Enough electricity to power <strong>${homes}</strong> average UK homes for a year.
-    ${data.demo ? `<br><br><em>Demo values shown. Backend calculation engine runs in Python.</em>` : ""}
-  `;
+      // Search on Enter key
+      locationSearch.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          searchLocation(locationSearch.value);
+        }
+      });
 
-  const months = Object.keys(data.monthly_kwh).map(m =>
-    ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]
-  );
-  const values = Object.values(data.monthly_kwh);
+      // Update recommendations when latitude is manually entered
+      document.querySelector('input[name="latitude"]').addEventListener('input', updateRecommendations);
 
-  if (chartInstance) chartInstance.destroy();
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-  chartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: months,
-      datasets: [{
-        label: "Monthly PV Generation (kWh)",
-        data: values,
-        backgroundColor: "#facc15",
-        borderColor: "#f59e0b",
-        borderWidth: 1
-      }]
-    },
-    options: {
-      scales: { y: { beginAtZero: true } },
-      responsive: true
-    }
-  });
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Calculating...";
+        comparisonBox.innerHTML = "";
+        metaBox.style.display = "none";
+        metaBox.innerHTML = "";
+        embodiedResultsBox.style.display = "none";
+        embodiedResultsBox.innerHTML = "";
+        transportResultsBox.style.display = "none";
+        transportResultsBox.innerHTML = "";
+        document.getElementById("pv-chart-container").style.display = "none";
+        document.getElementById("co2-chart-container").style.display = "none";
 
-} catch (err) {
-  comparisonBox.innerHTML = "❌ Error: " + err.message;
-}
+        const formData = new FormData(form);
+        const payload = {
+          materials: {}
+        };
 
-submitBtn.disabled = false;
-submitBtn.textContent = "Calculate";
-});
+        formData.forEach((val, key) => {
+          if (val === "") return;
 
-</script>
+          // Handle nested materials object
+          if (key.startsWith("materials.")) {
+            const materialKey = key.replace("materials.", "");
+            payload.materials[materialKey] = parseFloat(val) || 0;
+          }
+          // Handle transport legs
+          else if (key.startsWith("transport.")) {
+            if (!payload.transport) {
+              payload.transport = [];
+            }
+            
+            // Parse transport.1.mode, transport.1.distance_km, etc.
+            const match = key.match(/transport\.(\d+)\.(.+)/);
+            if (match) {
+              const legIndex = parseInt(match[1]) - 1;
+              const field = match[2];
+              
+              // Initialize leg object if needed
+              if (!payload.transport[legIndex]) {
+                payload.transport[legIndex] = {};
+              }
+              
+              // Store the field value
+              if (field === "mode") {
+                payload.transport[legIndex][field] = val;
+              } else {
+                payload.transport[legIndex][field] = parseFloat(val);
+              }
+            }
+          }
+          else if (key === "country_code") {
+            payload[key] = String(val).trim().toUpperCase();
+          } else if (key === "module_efficiency") {
+            payload[key] = parseFloat(val) / 100.0;
+          } else {
+            payload[key] = isNaN(val) ? val : parseFloat(val);
+          }
+        });
 
-</body>
+        // Check if any materials were provided
+        const hasMaterials = Object.values(payload.materials).some(v => v > 0);
+        if (!hasMaterials) {
+          delete payload.materials;
+        }
+
+        // Clean up transport array - remove any undefined entries
+        if (payload.transport) {
+          payload.transport = payload.transport.filter(leg => leg && leg.mode);
+          if (payload.transport.length === 0) {
+            delete payload.transport;
+          }
+        }
+
+        try {
+          const res = await fetch("http://localhost:8000/calculate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            // Display embodied carbon results if materials were provided
+            if (data.embodied && data.embodied.total_kgCO2e > 0) {
+              embodiedResultsBox.style.display = "block";
+              
+              let breakdownHTML = "";
+              if (data.embodied.breakdown && Object.keys(data.embodied.breakdown).length > 0) {
+                breakdownHTML = '<div class="material-breakdown"><strong>Material Breakdown:</strong>';
+                for (const [material, info] of Object.entries(data.embodied.breakdown)) {
+                  if (!info.error) {
+                    const materialName = material.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    breakdownHTML += `
+                      <div class="material-breakdown-item">
+                        ${materialName}: ${formatNumber(info.quantity_kg)} kg × ${info.factor_kgCO2e_per_kg} kgCO₂e/kg 
+                        = <strong>${formatNumber(info.emissions_kgCO2e)} kgCO₂e</strong>
+                      </div>
+                    `;
+                  }
+                }
+                breakdownHTML += '</div>';
+              }
+
+              embodiedResultsBox.innerHTML = `
+                <strong>🏗️ Embodied Carbon (A1-A3 - Materials):</strong> ${formatNumber(data.embodied.total_kgCO2e)} kgCO₂e
+                ${breakdownHTML}
+              `;
+            } else {
+              embodiedResultsBox.style.display = "none";
+            }
+
+            // Display transport emissions results if transport legs were provided
+            if (data.transport && data.transport.total_kgCO2e > 0) {
+              transportResultsBox.style.display = "block";
+              
+              let breakdownHTML = "";
+              if (data.transport.breakdown && data.transport.breakdown.length > 0) {
+                breakdownHTML = '<div class="material-breakdown"><strong>Transport Legs:</strong>';
+                for (const leg of data.transport.breakdown) {
+                  if (!leg.error) {
+                    breakdownHTML += `
+                      <div class="material-breakdown-item">
+                        Leg ${leg.leg}: ${leg.mode}<br>
+                        ${formatNumber(leg.mass_tonnes)} tonnes × ${formatNumber(leg.distance_km)} km = ${formatNumber(leg.tonne_km)} tkm<br>
+                        ${formatNumber(leg.tonne_km)} tkm × ${leg.factor_kgCO2e_per_tkm} kgCO₂e/tkm = <strong>${formatNumber(leg.emissions_kgCO2e)} kgCO₂e</strong>
+                      </div>
+                    `;
+                  }
+                }
+                breakdownHTML += '</div>';
+              }
+
+              transportResultsBox.innerHTML = `
+                <strong>🚛 Transport Emissions (A4):</strong> ${formatNumber(data.transport.total_kgCO2e)} kgCO₂e
+                ${breakdownHTML}
+              `;
+            } else {
+              transportResultsBox.style.display = "none";
+            }
+
+            // Comparisons with comma formatting
+            const savedKG = data.annual_avoided_kgCO2e;
+            const savedTonnes = data.annual_avoided_tonnesCO2e;
+            const treeAbsorbPerYear = 21.0;
+            const carPerMile = 0.271;
+            const householdKwhPerYear = 3700;
+            const homeKwh = data.annual_kwh;
+
+            const trees = savedKG / treeAbsorbPerYear;
+            const miles = savedKG / carPerMile;
+            const homes = homeKwh / householdKwhPerYear;
+
+            comparisonBox.innerHTML = `
+              🌳 Equivalent to planting <strong>${formatNumber(trees)}</strong> trees absorbing CO₂ for a year.<br>
+              🚗 Equivalent to avoiding <strong>${formatNumber(miles)}</strong> car miles driven.<br>
+              🏠 Enough electricity to power <strong>${formatNumber(homes)}</strong> average UK homes for a year.
+            `;
+
+            // Show factor + source returned by backend
+            if (data.assumptions) {
+              const area = data.assumptions.area_m2;
+              const eff = (data.assumptions.module_efficiency * 100).toFixed(1);
+              const cap = data.assumptions.equivalent_capacity_kwp;
+              const cf = data.assumptions.carbon_factor_kgCO2e_per_kwh;
+              const src = data.assumptions.carbon_factor_source;
+              const yr = data.assumptions.carbon_factor_year;
+              const reg = data.assumptions.carbon_factor_region;
+
+              metaBox.style.display = "block";
+              metaBox.innerHTML = `
+                <strong>System details:</strong> ${formatNumber(area)} m² × ${eff}% efficiency = ${formatNumber(cap)} kWp<br>
+                <strong>Grid emissions factor used:</strong> ${Number(cf).toFixed(3)} kgCO₂e/kWh<br>
+                <strong>Source:</strong> ${src}<br>
+                <strong>Year / Region:</strong> ${yr} / ${reg}
+              `;
+            }
+
+            // Chart
+            const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const months = Object.keys(data.monthly_kwh).map(m => monthNames[parseInt(m,10) - 1]);
+            const values = Object.values(data.monthly_kwh);
+
+            // Show PV chart container and set total
+            document.getElementById("pv-chart-container").style.display = "block";
+            document.getElementById("pv-total").textContent = `Annual Total: ${formatNumber(data.annual_kwh)} kWh`;
+
+            if (pvChartInstance) pvChartInstance.destroy();
+
+            pvChartInstance = new Chart(ctxPV, {
+                type: "bar",
+                data: {
+                 labels: months,
+                datasets: [{
+                     label: "Monthly PV Generation (kWh)",
+                     data: values,
+                     backgroundColor: "#facc15",
+                     borderColor: "#f59e0b",
+                     borderWidth: 1
+                }]
+            },
+              options: {
+                scales: { y: { beginAtZero: true } },
+                responsive: true,
+              },
+            });
+
+          // --- Monthly avoided emissions chart ---
+            const carbonFactor = data.assumptions?.carbon_factor_kgCO2e_per_kwh;
+
+            // Compute kgCO2e avoided per month = kWh * (kgCO2e/kWh)
+            const avoidedMonthlyKg = values.map(kwh => kwh * carbonFactor);
+
+            // Show CO2 chart container and set total
+            document.getElementById("co2-chart-container").style.display = "block";
+            document.getElementById("co2-total").textContent = `Annual Total: ${formatNumber(data.annual_avoided_tonnesCO2e)} tCO₂e`;
+
+            if (co2ChartInstance) co2ChartInstance.destroy();
+
+            co2ChartInstance = new Chart(ctxCO2, {
+            type: "bar",
+            data: {
+                 labels: months,
+                 datasets: [{
+                     label: "Monthly Avoided Emissions (kgCO₂e)",
+                     data: avoidedMonthlyKg,
+                     backgroundColor: "#86efac",
+                      borderColor: "#22c55e",
+                      borderWidth: 1
+                     }]
+                 },
+            options: {
+             scales: { y: { beginAtZero: true } },
+              responsive: true
+                },
+            });  
+          } else {
+            comparisonBox.innerHTML = "⚠️ Error: " + (data.detail || "Unknown");
+          }
+        } catch (err) {
+          comparisonBox.innerHTML = "❌ Network Error: " + err.message;
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Calculate";
+      });
+    </script>
+  </body>
 </html>
-
 
