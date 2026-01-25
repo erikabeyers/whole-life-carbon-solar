@@ -547,6 +547,7 @@
       const metaBox = document.getElementById("meta");
       const embodiedResultsBox = document.getElementById("embodied-results");
       const transportResultsBox = document.getElementById("transport-results");
+      const constructionResultsBox = document.getElementById("construction-results");
       const recommendationBox = document.getElementById("recommendation");
       const ctxPV = document.getElementById("pvChart").getContext("2d");
       const ctxCO2 = document.getElementById("co2Chart").getContext("2d");
@@ -783,6 +784,8 @@
         embodiedResultsBox.innerHTML = "";
         transportResultsBox.style.display = "none";
         transportResultsBox.innerHTML = "";
+        constructionResultsBox.style.display = "none";
+        constructionResultsBox.innerHTML = "";
         document.getElementById("pv-chart-container").style.display = "none";
         document.getElementById("co2-chart-container").style.display = "none";
 
@@ -828,7 +831,7 @@
           // Handle construction inputs
           else if (key.startsWith("construction.")) {
             if (!payload.construction) {
-              payload.construction = { method: "simple" };
+              payload.construction = {};
             }
             
             const field = key.replace("construction.", "");
@@ -860,6 +863,11 @@
           if (payload.transport.length === 0) {
             delete payload.transport;
           }
+        }
+
+        // Clean up construction object if it's incomplete or empty
+        if (payload.construction && !payload.construction.method) {
+          delete payload.construction;
         }
 
         try {

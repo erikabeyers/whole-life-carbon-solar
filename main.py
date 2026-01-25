@@ -150,9 +150,14 @@ def calculate_construction_emissions(
     grid_carbon_factor: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Calculate construction emissions (A5)."""
+   
     if construction_input is None:
-        # Default: use simple method with 5%
-        return calculate_construction_simple(embodied_carbon_kgCO2e, percentage=5.0)
+        # Return zero if user didn't specify construction
+        return {
+            "total_kgCO2e": 0.0,
+            "total_tonnesCO2e": 0.0,
+            "note": "No construction input provided"
+        }
     
     if construction_input.method == "simple":
         return calculate_construction_simple(
