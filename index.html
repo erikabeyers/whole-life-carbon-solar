@@ -815,7 +815,7 @@
         }
 
         try {
-          const res = await fetch("web-production-1d7b.up.railway.app", {
+          const res = await fetch("https://web-production-1d7b.up.railway.app/calculate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
