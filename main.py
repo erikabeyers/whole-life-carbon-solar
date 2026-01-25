@@ -145,7 +145,7 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
     # ---------------------------------------------------------------------
     # PVGIS hourly irradiance
     # ---------------------------------------------------------------------
-    data, _ = get_pvgis_hourly(
+    data, _, _ = get_pvgis_hourly(
         latitude=lat,
         longitude=lon,
         start=input.year,
