@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from emissions_factors import get_grid_electricity_factor
 from materials_loader_ice import get_material_factor
 from transport_emissions_factors import TransportLeg, calculate_transport_emissions
-from construction_emissions_factors import ConstructionActivity, calculate_construction_emissions
+from construction_emissions_factors import calculate_construction_simple, calculate_construction_detailed, EquipmentUsage
 
 app = FastAPI()
 
