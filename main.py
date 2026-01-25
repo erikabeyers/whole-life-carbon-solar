@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from emissions_factors import get_grid_electricity_factor
 from materials_loader_ice import get_material_factor
 from transport_emissions_factors import TransportLeg, calculate_transport_emissions
+from construction_emissions_factors import ConstructionActivity, calculate_construction_emissions
 
 app = FastAPI()
 
@@ -37,6 +38,20 @@ class TransportLegInput(BaseModel):
     distance_km: float
     mass_tonnes: float
 
+class ConstructionInput(BaseModel):
+    """Construction & installation (A5) calculation method"""
+    method: str = "simple"  # "simple"
+    
+    # Simple method
+    percentage: Optional[float] = 5.0  # % of embodied carbon
+    
+    # Detailed method (optional)
+    equipment_usage: Optional[List[Dict[str, Any]]] = None
+    worker_transport_km: Optional[float] = None
+    num_workers: Optional[int] = None
+    num_days: Optional[int] = None
+    grid_electricity_kwh: Optional[float] = None
+
 
 class SolarInput(BaseModel):
     # Location inputs
@@ -56,6 +71,9 @@ class SolarInput(BaseModel):
     
     # Transport legs (optional - A4)
     transport: Optional[List[TransportLegInput]] = None
+
+    # Construction & installation (optional - A5)
+    construction: Optional[ConstructionInput] = None
 
     # Emissions factor handling
     carbon_factor_override: Optional[float] = None  # kgCO2e/kWh
@@ -126,6 +144,45 @@ def calculate_embodied_carbon(materials: Optional[MaterialQuantities]) -> Dict[s
         "breakdown": breakdown,
     }
 
+def calculate_construction_emissions(
+    construction_input: Optional[ConstructionInput],
+    embodied_carbon_kgCO2e: float,
+    grid_carbon_factor: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Calculate construction emissions (A5)."""
+    if construction_input is None:
+        # Default: use simple method with 5%
+        return calculate_construction_simple(embodied_carbon_kgCO2e, percentage=5.0)
+    
+    if construction_input.method == "simple":
+        return calculate_construction_simple(
+            embodied_carbon_kgCO2e,
+            percentage=construction_input.percentage or 5.0,
+        )
+    
+    elif construction_input.method == "detailed":
+        equipment = []
+        if construction_input.equipment_usage:
+            for eq in construction_input.equipment_usage:
+                equipment.append(EquipmentUsage(
+                    equipment_type=eq.get("equipment_type", ""),
+                    hours=eq.get("hours", 0.0),
+                ))
+        
+        return calculate_construction_detailed(
+            equipment_usage=equipment,
+            worker_transport_km=construction_input.worker_transport_km,
+            num_workers=construction_input.num_workers,
+            num_days=construction_input.num_days,
+            grid_electricity_kwh=construction_input.grid_electricity_kwh,
+            grid_carbon_factor=grid_carbon_factor,
+        )
+    
+    return {
+        "total_kgCO2e": 0.0,
+        "total_tonnesCO2e": 0.0,
+        "note": "Invalid construction method",
+    }
 
 @app.post("/calculate")
 def calculate(input: SolarInput) -> Dict[str, Any]:
@@ -210,7 +267,17 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
             "breakdown": [],
             "note": "No transport legs provided"
         }
-
+    
+    # ---------------------------------------------------------------------
+    # Construction Emissions (A5)
+    # ---------------------------------------------------------------------
+    
+    construction_emissions = calculate_construction_emissions(
+    input.construction,
+    embodied_carbon["total_kgCO2e"],
+    carbon_factor,
+    )
+    
     # ---------------------------------------------------------------------
     # Response
     # ---------------------------------------------------------------------
@@ -230,6 +297,9 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
         
         # Transport (A4)
         "transport": transport_emissions,
+        
+        #Construction (A5)
+        "construction": construction_emissions,
         
         # Legacy top-level keys for backward compatibility
         "annual_kwh": round(annual_total_kwh, 1),
