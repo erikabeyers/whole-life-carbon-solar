@@ -19,6 +19,9 @@ Default data source:
 from __future__ import annotations
 
 import pandas as pd
+import requests
+import time
+from io import BytesIO
 from dataclasses import dataclass
 from typing import Optional
 
@@ -51,7 +54,7 @@ _owid_cache: Optional[pd.DataFrame] = None
 
 def _load_owid_data() -> pd.DataFrame:
     """
-    Load and cache OWID energy data.
+    Load and cache OWID energy data with retry logic.
 
     Required columns:
     - country
@@ -62,29 +65,63 @@ def _load_owid_data() -> pd.DataFrame:
     global _owid_cache
 
     if _owid_cache is None:
-        df = pd.read_csv(_OWID_ENERGY_CSV)
+        max_retries = 3
+        timeout = 60  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"Downloading OWID data (attempt {attempt + 1}/{max_retries})...")
+                
+                # Use requests for better control over timeout and streaming
+                response = requests.get(
+                    _OWID_ENERGY_CSV, 
+                    timeout=timeout,
+                    stream=True
+                )
+                response.raise_for_status()
+                
+                # Read content into memory
+                content = BytesIO(response.content)
+                df = pd.read_csv(content)
+                
+                print("OWID data downloaded successfully!")
+                
+                required = {
+                    "country",
+                    "iso_code",
+                    "year",
+                    "carbon_intensity_elec",
+                }
 
-        required = {
-            "country",
-            "iso_code",
-            "year",
-            "carbon_intensity_elec",
-        }
+                missing = required - set(df.columns)
+                if missing:
+                    raise KeyError(f"Missing expected OWID columns: {missing}")
 
-        missing = required - set(df.columns)
-        if missing:
-            raise KeyError(f"Missing expected OWID columns: {missing}")
+                # Keep only what we need
+                df = df[list(required)]
 
-        # Keep only what we need
-        df = df[list(required)]
+                # Drop rows without carbon intensity
+                df = df.dropna(subset=["carbon_intensity_elec"])
 
-        # Drop rows without carbon intensity
-        df = df.dropna(subset=["carbon_intensity_elec"])
+                # Convert gCO2/kWh → kgCO2/kWh
+                df["kgco2_per_kwh"] = df["carbon_intensity_elec"] / 1000.0
 
-        # Convert gCO2/kWh → kgCO2/kWh
-        df["kgco2_per_kwh"] = df["carbon_intensity_elec"] / 1000.0
-
-        _owid_cache = df
+                _owid_cache = df
+                return _owid_cache
+                
+            except (requests.exceptions.RequestException, 
+                    requests.exceptions.Timeout,
+                    ConnectionError) as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                    print(f"Download failed: {e}. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    raise ValueError(
+                        f"Failed to download OWID data after {max_retries} attempts. "
+                        f"Error: {e}\n"
+                        "Please check your internet connection or use override_value parameter."
+                    ) from e
 
     return _owid_cache
 
