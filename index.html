@@ -492,11 +492,35 @@
           </div>
         </div>
 
+                <!-- Collapsible Construction Section (A5) -->
+        <div class="collapsible" id="construction-section">
+          <div class="collapsible-header">
+            <span>🏗️ Construction & Installation (A5) - Optional</span>
+            <span class="collapsible-toggle">+</span>
+          </div>
+          <div class="collapsible-content">
+            <p class="helper-text">Choose calculation method for construction emissions.</p>
+            
+            <label>Method:</label>
+            <select name="construction.method" id="construction-method">
+              <option value="simple">Simple (% of embodied carbon)</option>
+              <option value="detailed">Detailed (itemized activities)</option>
+            </select>
+            
+            <div id="simple-method-inputs">
+              <label>Percentage of A1-A3 (%):</label>
+              <input name="construction.percentage" type="number" step="0.1" value="5.0" />
+              <div class="helper-text">Typical range: 3-7% for solar PV</div>
+            </div>
+          </div>
+        </div>
+
         <button type="submit" id="submit-btn">Calculate</button>
       </form>
 
       <div id="embodied-results" class="embodied-results" style="display:none;"></div>
       <div id="transport-results" class="embodied-results" style="display:none;"></div>
+      <div id="construction-results" class="embodied-results" style="display:none;"></div>
 
       <div class="chart-container" id="pv-chart-container" style="display:none;">
         <div class="chart-total" id="pv-total"></div>
@@ -544,6 +568,15 @@
       // Collapsible section toggle for transport
       document.getElementById("transport-section").addEventListener("click", function(e) {
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SELECT') {
+          this.classList.toggle("active");
+          const toggle = this.querySelector(".collapsible-toggle");
+          toggle.textContent = this.classList.contains("active") ? "−" : "+";
+        }
+      });
+
+      // Collapsible section toggle for construction
+      document.getElementById("construction-section").addEventListener("click", function(e) {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
           this.classList.toggle("active");
           const toggle = this.querySelector(".collapsible-toggle");
           toggle.textContent = this.classList.contains("active") ? "−" : "+";
@@ -791,6 +824,21 @@
               }
             }
           }
+          // In the form submit event listener, after handling transport
+          // Handle construction inputs
+          else if (key.startsWith("construction.")) {
+            if (!payload.construction) {
+              payload.construction = { method: "simple" };
+            }
+            
+            const field = key.replace("construction.", "");
+            if (field === "method") {
+              payload.construction[field] = val;
+            } else if (field === "percentage") {
+              payload.construction[field] = parseFloat(val);
+            }
+          }
+
           else if (key === "country_code") {
             payload[key] = String(val).trim().toUpperCase();
           } else if (key === "module_efficiency") {
@@ -880,6 +928,30 @@
               `;
             } else {
               transportResultsBox.style.display = "none";
+            }
+            // Display construction emissions results
+            if (data.construction && data.construction.total_kgCO2e > 0) {
+              const constructionResultsBox = document.getElementById("construction-results");
+              constructionResultsBox.style.display = "block";
+              
+              let breakdownHTML = "";
+              if (data.construction.breakdown && data.construction.breakdown.length > 0) {
+                breakdownHTML = '<div class="material-breakdown"><strong>Activities:</strong>';
+                for (const item of data.construction.breakdown) {
+                  breakdownHTML += `
+                    <div class="material-breakdown-item">
+                      ${item.activity}: <strong>${formatNumber(item.emissions_kgCO2e)} kgCO₂e</strong><br>
+                      <small>${item.description}</small>
+                    </div>
+                  `;
+                }
+                breakdownHTML += '</div>';
+              }
+
+              constructionResultsBox.innerHTML = `
+                <strong>🏗️ Construction & Installation (A5):</strong> ${formatNumber(data.construction.total_kgCO2e)} kgCO₂e
+                ${breakdownHTML}
+              `;
             }
 
             // Comparisons with comma formatting
