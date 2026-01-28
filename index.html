@@ -492,7 +492,7 @@
           </div>
         </div>
 
-                <!-- Collapsible Construction Section (A5) -->
+        <!-- Collapsible Construction Section (A5) -->
         <div class="collapsible" id="construction-section">
           <div class="collapsible-header">
             <span>🏗️ Construction & Installation (A5) - Optional</span>
@@ -512,6 +512,37 @@
               <input name="construction.percentage" type="number" step="0.1" value="5.0" />
               <div class="helper-text">Typical range: 3-7% for solar PV</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Replacements Section (B2-B5) -->
+        <div class="collapsible" id="replacements-section">
+          <div class="collapsible-header">
+            <span>🔁 Component Replacements & Degradation (B2-B5) - Optional</span>
+            <span class="collapsible-toggle">+</span>
+          </div>
+          <div class="collapsible-content">
+            <p class="helper-text">Model performance degradation and replacement of major components over the system lifetime.</p>
+
+            <label>System lifetime (years):</label>
+            <input name="replacements.system_lifetime_years" type="number" step="1" value="25" />
+            <div class="helper-text">Typical solar PV lifetime: 25-30 years</div>
+
+            <label>Module degradation rate (% per year):</label>
+            <input name="replacements.module_degradation_rate_pct_per_year" type="number" step="0.01" value="0.5" />
+            <div class="helper-text">Typical range: 0.3-0.7% per year</div>
+
+            <label>Inverter lifetime (years):</label>
+            <input name="replacements.inverter_lifetime_years" type="number" step="1" value="12" />
+            <div class="helper-text">Inverters often replaced once in a 25-year lifecycle</div>
+
+            <label>Inverter embodied carbon (kgCO₂e per kWp):</label>
+            <input name="replacements.inverter_embodied_kgCO2e_per_kwp" type="number" step="0.1" value="30" />
+            <div class="helper-text">Estimate of embodied emissions for each inverter replacement</div>
+
+            <label>Additional replacement allowance (% of A1-A3):</label>
+            <input name="replacements.additional_replacement_percent_of_embodied" type="number" step="0.1" value="0" />
+            <div class="helper-text">Use for minor component swaps (cabling, switches, etc.)</div>
           </div>
         </div>
 
@@ -548,6 +579,7 @@
       const embodiedResultsBox = document.getElementById("embodied-results");
       const transportResultsBox = document.getElementById("transport-results");
       const constructionResultsBox = document.getElementById("construction-results");
+      const replacementsResultsBox = document.getElementById("replacements-results");
       const recommendationBox = document.getElementById("recommendation");
       const ctxPV = document.getElementById("pvChart").getContext("2d");
       const ctxCO2 = document.getElementById("co2Chart").getContext("2d");
@@ -578,6 +610,15 @@
       // Collapsible section toggle for construction
       document.getElementById("construction-section").addEventListener("click", function(e) {
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+          this.classList.toggle("active");
+          const toggle = this.querySelector(".collapsible-toggle");
+          toggle.textContent = this.classList.contains("active") ? "−" : "+";
+        }
+      });
+
+      // Collapsible section toggle for replacements
+      document.getElementById("replacements-section").addEventListener("click", function(e) {
+        if (e.target.tagName !== 'INPUT') {
           this.classList.toggle("active");
           const toggle = this.querySelector(".collapsible-toggle");
           toggle.textContent = this.classList.contains("active") ? "−" : "+";
@@ -786,6 +827,8 @@
         transportResultsBox.innerHTML = "";
         constructionResultsBox.style.display = "none";
         constructionResultsBox.innerHTML = "";
+        replacementsResultsBox.style.display = "none";
+        replacementsResultsBox.innerHTML = "";
         document.getElementById("pv-chart-container").style.display = "none";
         document.getElementById("co2-chart-container").style.display = "none";
 
@@ -840,6 +883,16 @@
             } else if (field === "percentage") {
               payload.construction[field] = parseFloat(val);
             }
+          }
+
+          // Handle replacements inputs
+          else if (key.startsWith("replacements.")) {
+            if (!payload.replacements) {
+              payload.replacements = {};
+            }
+
+            const field = key.replace("replacements.", "");
+            payload.replacements[field] = parseFloat(val);
           }
 
           else if (key === "country_code") {
@@ -959,6 +1012,25 @@
               constructionResultsBox.innerHTML = `
                 <strong>🏗️ Construction & Installation (A5):</strong> ${formatNumber(data.construction.total_kgCO2e)} kgCO₂e
                 ${breakdownHTML}
+              `;
+            }
+
+             if (data.replacements && !data.replacements.note) {
+              replacementsResultsBox.style.display = "block";
+              const replacementEmissions = data.replacements.total_kgCO2e || 0;
+              replacementsResultsBox.innerHTML = `
+                <strong>🔁 Component Replacements (B2-B5):</strong> ${formatNumber(replacementEmissions)} kgCO₂e<br>
+                <div class="material-breakdown">
+                  <div class="material-breakdown-item">
+                    Lifetime generation (degraded): <strong>${formatNumber(data.replacements.lifetime_generation_kwh)} kWh</strong>
+                  </div>
+                  <div class="material-breakdown-item">
+                    Lifetime avoided emissions: <strong>${formatNumber(data.replacements.lifetime_avoided_tonnesCO2e)} tCO₂e</strong>
+                  </div>
+                  <div class="material-breakdown-item">
+                    Inverter replacements: <strong>${data.replacements.inverter_replacements}</strong> (every ${data.replacements.inverter_lifetime_years} years)
+                  </div>
+                </div>
               `;
             }
 

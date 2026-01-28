@@ -10,6 +10,7 @@ from emissions_factors import get_grid_electricity_factor
 from materials_loader_ice import get_material_factor
 from transport_emissions_factors import TransportLeg, calculate_transport_emissions
 from construction_emissions_factors import calculate_construction_simple, calculate_construction_detailed, EquipmentUsage
+from replacement_rate import ReplacementInput, calculate_replacement_emissions
 
 app = FastAPI()
 
@@ -21,7 +22,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 class MaterialQuantities(BaseModel):
     """Material quantities for embodied carbon calculation (A1-A3)"""
     aluminium_kg: float = 0.0
@@ -30,7 +30,6 @@ class MaterialQuantities(BaseModel):
     glass_kg: float = 0.0
     silicon_pv_kg: float = 0.0
     copper_kg: float = 0.0
-
 
 class TransportLegInput(BaseModel):
     """A single transport leg"""
@@ -52,6 +51,13 @@ class ConstructionInput(BaseModel):
     num_days: Optional[int] = None
     grid_electricity_kwh: Optional[float] = None
 
+class ReplacementInput(BaseModel):
+    """Component replacements & degradation (B2-B5)"""
+    system_lifetime_years: int = 25
+    module_degradation_rate_pct_per_year: float = 0.5
+    inverter_lifetime_years: Optional[int] = 12
+    inverter_embodied_kgCO2e_per_kwp: Optional[float] = 30.0
+    additional_replacement_percent_of_embodied: Optional[float] = 0.0
 
 class SolarInput(BaseModel):
     # Location inputs
@@ -75,10 +81,12 @@ class SolarInput(BaseModel):
     # Construction & installation (optional - A5)
     construction: Optional[ConstructionInput] = None
 
+    # Component replacements & degradation (optional - B2-B5)
+    replacements: Optional[ReplacementInput] = None
+
     # Emissions factor handling
     carbon_factor_override: Optional[float] = None  # kgCO2e/kWh
     country_code: str = "GBR"  # default for OWID lookup
-
 
 def get_coordinates(postcode: Optional[str], lat: Optional[float], lon: Optional[float]):
     if lat is not None and lon is not None:
@@ -92,7 +100,6 @@ def get_coordinates(postcode: Optional[str], lat: Optional[float], lon: Optional
             raise ValueError("Invalid postcode.")
     else:
         raise ValueError("Must provide either postcode or latitude/longitude.")
-
 
 def calculate_embodied_carbon(materials: Optional[MaterialQuantities]) -> Dict[str, Any]:
     """
@@ -189,6 +196,7 @@ def calculate_construction_emissions(
         "note": "Invalid construction method",
     }
 
+
 @app.post("/calculate")
 def calculate(input: SolarInput) -> Dict[str, Any]:
     lat, lon = get_coordinates(input.postcode, input.latitude, input.longitude)
@@ -284,6 +292,17 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
     )
     
     # ---------------------------------------------------------------------
+    # Component replacements & degradation (B2-B5)
+    # ---------------------------------------------------------------------
+    replacement_emissions = calculate_replacement_emissions(
+        input.replacements,
+        capacity_kwp,
+        annual_total_kwh,
+        embodied_carbon["total_kgCO2e"],
+        carbon_factor,
+    )
+
+    # ---------------------------------------------------------------------
     # Response
     # ---------------------------------------------------------------------
     return {
@@ -305,6 +324,9 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
         
         #Construction (A5)
         "construction": construction_emissions,
+        
+        # Component replacements & degradation (B2-B5)
+        "replacements": replacement_emissions,
         
         # Legacy top-level keys for backward compatibility
         "annual_kwh": round(annual_total_kwh, 1),
