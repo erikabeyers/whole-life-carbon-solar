@@ -51,14 +51,6 @@ class ConstructionInput(BaseModel):
     num_days: Optional[int] = None
     grid_electricity_kwh: Optional[float] = None
 
-class ReplacementInput(BaseModel):
-    """Component replacements & degradation (B2-B5)"""
-    system_lifetime_years: int = 25
-    module_degradation_rate_pct_per_year: float = 0.5
-    inverter_lifetime_years: Optional[int] = 12
-    inverter_embodied_kgCO2e_per_kwp: Optional[float] = 30.0
-    additional_replacement_percent_of_embodied: Optional[float] = 0.0
-
 class SolarInput(BaseModel):
     # Location inputs
     postcode: Optional[str] = None
@@ -324,7 +316,7 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
         
         #Construction (A5)
         "construction": construction_emissions,
-        
+
         # Component replacements & degradation (B2-B5)
         "replacements": replacement_emissions,
         
