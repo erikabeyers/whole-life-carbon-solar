@@ -567,6 +567,33 @@
           </div>
         </div>
 
+        <!-- Collapsible BESS Section -->
+        <div class="collapsible" id="bess-section">
+          <div class="collapsible-header">
+            <span>🔋 Battery Energy Storage System (BESS) - Optional</span>
+            <span class="collapsible-toggle">+</span>
+          </div>
+          <div class="collapsible-content">
+            <label>
+              <input name="bess.included" type="checkbox" id="bess-included" />
+              Tick if BESS is included
+            </label>
+
+            <div id="bess-inputs" style="display:none;">
+              <label>BESS capacity (kWh):</label>
+              <input name="bess.capacity_kwh" type="number" step="0.1" value="0" />
+              <div class="helper-text">Total usable battery capacity</div>
+
+              <label>BESS embodied carbon (kgCO₂e per kWh):</label>
+              <input name="bess.embodied_kgCO2e_per_kwh" type="number" step="0.1" value="75" />
+              <div class="helper-text">Default estimate for lithium-ion systems</div>
+
+              <label>Round-trip efficiency (0-1):</label>
+              <input name="bess.roundtrip_efficiency" type="number" step="0.01" value="0.9" />
+            </div>
+          </div>
+        </div>
+
         <button type="submit" id="submit-btn">Calculate</button>
         <button type="button" id="download-report-btn" class="btn-secondary" disabled>Download Report</button>
       </form>
@@ -604,6 +631,7 @@
       const transportResultsBox = document.getElementById("transport-results");
       const constructionResultsBox = document.getElementById("construction-results");
       const replacementsResultsBox = document.getElementById("replacements-results");
+      const bessResultsBox = document.getElementById("bess-results");
       const lifetimeResultsBox = document.getElementById("lifetime-results");
       const recommendationBox = document.getElementById("recommendation");
       const ctxPV = document.getElementById("pvChart").getContext("2d");
@@ -668,6 +696,22 @@
           const toggle = this.querySelector(".collapsible-toggle");
           toggle.textContent = this.classList.contains("active") ? "−" : "+";
         }
+      });
+      
+      // Collapsible section toggle for BESS
+      document.getElementById("bess-section").addEventListener("click", function(e) {
+        if (e.target.tagName !== 'INPUT') {
+          this.classList.toggle("active");
+          const toggle = this.querySelector(".collapsible-toggle");
+          toggle.textContent = this.classList.contains("active") ? "−" : "+";
+        }
+      });
+
+      const bessIncludedCheckbox = document.getElementById("bess-included");
+      const bessInputs = document.getElementById("bess-inputs");
+
+      bessIncludedCheckbox.addEventListener("change", () => {
+        bessInputs.style.display = bessIncludedCheckbox.checked ? "block" : "none";
       });
 
       // Add transport leg functionality
@@ -914,8 +958,11 @@
         constructionResultsBox.innerHTML = "";
         replacementsResultsBox.style.display = "none";
         replacementsResultsBox.innerHTML = "";
+        bessResultsBox.style.display = "none";
+        bessResultsBox.innerHTML = "";
         lifetimeResultsBox.style.display = "none";
         lifetimeResultsBox.innerHTML = "";
+       
         document.getElementById("pv-chart-container").style.display = "none";
         document.getElementById("co2-chart-container").style.display = "none";
 
@@ -1003,6 +1050,20 @@
             payload.replacements[field] = parseFloat(val);
           }
 
+          // Handle BESS inputs
+          else if (key.startsWith("bess.")) {
+            if (!payload.bess) {
+              payload.bess = {};
+            }
+
+            const field = key.replace("bess.", "");
+            if (field === "included") {
+              payload.bess[field] = true;
+            } else {
+              payload.bess[field] = parseFloat(val);
+            }
+          }
+
           else if (key === "country_code") {
             payload[key] = String(val).trim().toUpperCase();
           } else if (key === "module_efficiency") {
@@ -1038,6 +1099,16 @@
 
         if (payload.construction && !payload.construction.method) {
           delete payload.construction;
+        }
+
+        // Clean up replacements object if it's empty
+        if (payload.replacements && Object.keys(payload.replacements).length === 0) {
+          delete payload.replacements;
+        }
+
+        // Clean up BESS object if not included
+        if (payload.bess && !payload.bess.included) {
+          delete payload.bess;
         }
 
         try {
@@ -1148,6 +1219,21 @@
                   </div>
                   <div class="material-breakdown-item">
                     Inverter replacements: <strong>${data.replacements.inverter_replacements}</strong> (every ${data.replacements.inverter_lifetime_years} years)
+                  </div>
+                </div>
+              `;
+            }
+
+              if (data.bess && !data.bess.note) {
+              bessResultsBox.style.display = "block";
+              bessResultsBox.innerHTML = `
+                <strong>🔋 BESS Embodied Emissions:</strong> ${formatNumber(data.bess.total_kgCO2e)} kgCO₂e<br>
+                <div class="material-breakdown">
+                  <div class="material-breakdown-item">
+                    Capacity: <strong>${formatNumber(data.bess.capacity_kwh)} kWh</strong>
+                  </div>
+                  <div class="material-breakdown-item">
+                    Factor: <strong>${formatNumber(data.bess.embodied_kgCO2e_per_kwh)} kgCO₂e/kWh</strong>
                   </div>
                 </div>
               `;
@@ -1341,6 +1427,13 @@
     <tr><th>Replacement Emissions (kgCO₂e)</th><td>${formatReportNumber(replacements.total_kgCO2e)}</td></tr>
     <tr><th>Lifetime Generation (kWh)</th><td>${formatReportNumber(replacements.lifetime_generation_kwh)}</td></tr>
     <tr><th>Lifetime Avoided Emissions (tCO₂e)</th><td>${formatReportNumber(replacements.lifetime_avoided_tonnesCO2e, 3)}</td></tr>
+  </table>
+
+   <h2>BESS</h2>
+  <table>
+    <tr><th>Capacity (kWh)</th><td>${formatReportNumber(bess.capacity_kwh)}</td></tr>
+    <tr><th>Embodied Factor (kgCO₂e/kWh)</th><td>${formatReportNumber(bess.embodied_kgCO2e_per_kwh)}</td></tr>
+    <tr><th>BESS Emissions (kgCO₂e)</th><td>${formatReportNumber(bess.total_kgCO2e)}</td></tr>
   </table>
 
   <h2>Lifetime Analysis</h2>

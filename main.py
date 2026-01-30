@@ -11,6 +11,8 @@ from materials_loader_ice import get_material_factor
 from transport_emissions_factors import TransportLeg, calculate_transport_emissions
 from construction_emissions_factors import calculate_construction_simple, calculate_construction_detailed, EquipmentUsage
 from replacement_rate import ReplacementInput, calculate_replacement_emissions
+from bess_module import BessInput, calculate_bess_emissions
+
 
 app = FastAPI()
 
@@ -75,6 +77,9 @@ class SolarInput(BaseModel):
 
     # Component replacements & degradation (optional - B2-B5)
     replacements: Optional[ReplacementInput] = None
+
+    # BESS integration (optional)
+    bess: Optional[BessInput] = None
 
     # Emissions factor handling
     carbon_factor_override: Optional[float] = None  # kgCO2e/kWh
@@ -343,6 +348,25 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
     )
 
     # ---------------------------------------------------------------------
+    # BESS Emissions
+    # ---------------------------------------------------------------------
+    bess_emissions = calculate_bess_emissions(input.bess)
+
+    system_lifetime_years = 25
+    if input.replacements and input.replacements.system_lifetime_years:
+        system_lifetime_years = input.replacements.system_lifetime_years
+
+    lifetime_analysis = calculate_lifetime_analysis(
+        annual_avoided_kgCO2e=avoided_total_kg,
+        embodied_kgCO2e=embodied_carbon["total_kgCO2e"],
+        transport_kgCO2e=transport_emissions["total_kgCO2e"],
+        construction_kgCO2e=construction_emissions["total_kgCO2e"],
+        replacement_kgCO2e=replacement_emissions["total_kgCO2e"],
+        bess_kgCO2e=bess_emissions["total_kgCO2e"],
+        system_lifetime_years=system_lifetime_years,
+    )
+
+    # ---------------------------------------------------------------------
     # Response
     # ---------------------------------------------------------------------
     return {
@@ -367,6 +391,9 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
 
         # Component replacements & degradation (B2-B5)
         "replacements": replacement_emissions,
+
+        # BESS
+        "bess": bess_emissions,
 
         # Lifetime analysis
         "lifetime": lifetime_analysis,
