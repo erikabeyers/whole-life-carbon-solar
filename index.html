@@ -574,6 +574,7 @@
       <div id="transport-results" class="embodied-results" style="display:none;"></div>
       <div id="construction-results" class="embodied-results" style="display:none;"></div>
       <div id="replacements-results" class="embodied-results" style="display:none;"></div>
+      <div id="lifetime-results" class="embodied-results" style="display:none;"></div>
 
       <div class="chart-container" id="pv-chart-container" style="display:none;">
         <div class="chart-total" id="pv-total"></div>
@@ -602,6 +603,7 @@
       const transportResultsBox = document.getElementById("transport-results");
       const constructionResultsBox = document.getElementById("construction-results");
       const replacementsResultsBox = document.getElementById("replacements-results");
+      const lifetimeResultsBox = document.getElementById("lifetime-results");
       const recommendationBox = document.getElementById("recommendation");
       const ctxPV = document.getElementById("pvChart").getContext("2d");
       const ctxCO2 = document.getElementById("co2Chart").getContext("2d");
@@ -908,6 +910,8 @@
         constructionResultsBox.innerHTML = "";
         replacementsResultsBox.style.display = "none";
         replacementsResultsBox.innerHTML = "";
+        lifetimeResultsBox.style.display = "none";
+        lifetimeResultsBox.innerHTML = "";
         document.getElementById("pv-chart-container").style.display = "none";
         document.getElementById("co2-chart-container").style.display = "none";
 
@@ -1140,6 +1144,18 @@
                     Inverter replacements: <strong>${data.replacements.inverter_replacements}</strong> (every ${data.replacements.inverter_lifetime_years} years)
                   </div>
                 </div>
+              `;
+            }
+
+              if (data.lifetime) {
+              lifetimeResultsBox.style.display = "block";
+              const payback = data.lifetime.carbon_payback_years;
+              const paybackText = payback ? `${payback} years` : "N/A";
+              lifetimeResultsBox.innerHTML = `
+                <strong>📈 Lifetime Analysis:</strong><br>
+                Net savings: <strong>${formatNumber(data.lifetime.net_savings_tonnesCO2e)} tCO₂e</strong><br>
+                Lifetime avoided emissions: <strong>${formatNumber(data.lifetime.lifetime_avoided_tonnesCO2e)} tCO₂e</strong><br>
+                Carbon payback period: <strong>${paybackText}</strong>
               `;
             }
 

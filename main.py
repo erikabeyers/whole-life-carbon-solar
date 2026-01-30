@@ -188,6 +188,41 @@ def calculate_construction_emissions(
         "note": "Invalid construction method",
     }
 
+def calculate_lifetime_analysis(
+    annual_avoided_kgCO2e: float,
+    embodied_kgCO2e: float,
+    transport_kgCO2e: float,
+    construction_kgCO2e: float,
+    replacement_kgCO2e: float,
+    system_lifetime_years: int,
+) -> Dict[str, Any]:
+    """Calculate lifetime net savings and payback period."""
+    upfront_kgCO2e = embodied_kgCO2e + transport_kgCO2e + construction_kgCO2e
+    lifetime_avoided_kgCO2e = annual_avoided_kgCO2e * system_lifetime_years
+    total_emissions_kgCO2e = upfront_kgCO2e + replacement_kgCO2e
+    net_savings_kgCO2e = lifetime_avoided_kgCO2e - total_emissions_kgCO2e
+
+    payback_years = None
+    if annual_avoided_kgCO2e > 0:
+        payback_years = upfront_kgCO2e / annual_avoided_kgCO2e
+
+    return {
+        "system_lifetime_years": system_lifetime_years,
+        "annual_avoided_kgCO2e": round(annual_avoided_kgCO2e, 1),
+        "lifetime_avoided_kgCO2e": round(lifetime_avoided_kgCO2e, 1),
+        "lifetime_avoided_tonnesCO2e": round(lifetime_avoided_kgCO2e / 1000.0, 3),
+        "upfront_kgCO2e": round(upfront_kgCO2e, 2),
+        "replacement_kgCO2e": round(replacement_kgCO2e, 2),
+        "total_emissions_kgCO2e": round(total_emissions_kgCO2e, 2),
+        "net_savings_kgCO2e": round(net_savings_kgCO2e, 2),
+        "net_savings_tonnesCO2e": round(net_savings_kgCO2e / 1000.0, 3),
+        "carbon_payback_years": round(payback_years, 2) if payback_years is not None else None,
+        "assumptions": {
+            "payback_uses_upfront_only": True,
+            "upfront_includes": ["embodied", "transport", "construction"],
+            "replacements_included_in_net": True,
+        },
+    }
 
 @app.post("/calculate")
 def calculate(input: SolarInput) -> Dict[str, Any]:
@@ -294,6 +329,19 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
         carbon_factor,
     )
 
+    system_lifetime_years = 25
+    if input.replacements and input.replacements.system_lifetime_years:
+        system_lifetime_years = input.replacements.system_lifetime_years
+
+    lifetime_analysis = calculate_lifetime_analysis(
+        annual_avoided_kgCO2e=avoided_total_kg,
+        embodied_kgCO2e=embodied_carbon["total_kgCO2e"],
+        transport_kgCO2e=transport_emissions["total_kgCO2e"],
+        construction_kgCO2e=construction_emissions["total_kgCO2e"],
+        replacement_kgCO2e=replacement_emissions["total_kgCO2e"],
+        system_lifetime_years=system_lifetime_years,
+    )
+
     # ---------------------------------------------------------------------
     # Response
     # ---------------------------------------------------------------------
@@ -319,6 +367,9 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
 
         # Component replacements & degradation (B2-B5)
         "replacements": replacement_emissions,
+
+        # Lifetime analysis
+        "lifetime": lifetime_analysis,
         
         # Legacy top-level keys for backward compatibility
         "annual_kwh": round(annual_total_kwh, 1),
