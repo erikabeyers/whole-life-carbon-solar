@@ -20,9 +20,9 @@ The tool will show you:
  - Transport emissions (if provided)
 
 What's implemented (so far) :
- - Operational carbon (B6) - PV generation and avoided grid emissions
  - Embodied carbon (A1-A3) - Manufacturing emissions for materials (aluminium, steel, concrete, glass, silicon, copper)
  - Transport (A4) - Multi-leg transport with different modes (ship, truck, rail, air)
+ - Operational carbon (B6) - PV generation and avoided grid emissions
  - Component replacements (B2-B5) - Inverters, module degradation over lifetime
 
 What's still to come
