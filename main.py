@@ -200,11 +200,12 @@ def calculate_lifetime_analysis(
     construction_kgCO2e: float,
     replacement_kgCO2e: float,
     system_lifetime_years: int,
+    bess_kgCO2e: float = 0.0,
 ) -> Dict[str, Any]:
     """Calculate lifetime net savings and payback period."""
     upfront_kgCO2e = embodied_kgCO2e + transport_kgCO2e + construction_kgCO2e
     lifetime_avoided_kgCO2e = annual_avoided_kgCO2e * system_lifetime_years
-    total_emissions_kgCO2e = upfront_kgCO2e + replacement_kgCO2e
+    total_emissions_kgCO2e = upfront_kgCO2e + replacement_kgCO2e + bess_kgCO2e
     net_savings_kgCO2e = lifetime_avoided_kgCO2e - total_emissions_kgCO2e
 
     payback_years = None
@@ -218,6 +219,7 @@ def calculate_lifetime_analysis(
         "lifetime_avoided_tonnesCO2e": round(lifetime_avoided_kgCO2e / 1000.0, 3),
         "upfront_kgCO2e": round(upfront_kgCO2e, 2),
         "replacement_kgCO2e": round(replacement_kgCO2e, 2),
+        "bess_kgCO2e": round(bess_kgCO2e, 2),
         "total_emissions_kgCO2e": round(total_emissions_kgCO2e, 2),
         "net_savings_kgCO2e": round(net_savings_kgCO2e, 2),
         "net_savings_tonnesCO2e": round(net_savings_kgCO2e / 1000.0, 3),
@@ -226,6 +228,7 @@ def calculate_lifetime_analysis(
             "payback_uses_upfront_only": True,
             "upfront_includes": ["embodied", "transport", "construction"],
             "replacements_included_in_net": True,
+            "bess_included_in_net": bess_kgCO2e > 0.0,
         },
     }
 
