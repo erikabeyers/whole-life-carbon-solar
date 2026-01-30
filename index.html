@@ -568,6 +568,7 @@
         </div>
 
         <button type="submit" id="submit-btn">Calculate</button>
+        <button type="button" id="download-report-btn" class="btn-secondary" disabled>Download Report</button>
       </form>
 
       <div id="embodied-results" class="embodied-results" style="display:none;"></div>
@@ -609,6 +610,7 @@
       const ctxCO2 = document.getElementById("co2Chart").getContext("2d");
       let pvChartInstance = null;
       let co2ChartInstance = null;
+      let latestResults = null;
 
       // Transport leg counter
       let transportLegCount = 0;
@@ -899,6 +901,8 @@
 
         submitBtn.disabled = true;
         submitBtn.textContent = "Calculating...";
+        document.getElementById("download-report-btn").disabled = true;
+        latestResults = null;
         comparisonBox.innerHTML = "";
         metaBox.style.display = "none";
         metaBox.innerHTML = "";
@@ -1046,6 +1050,8 @@
           const data = await res.json();
 
           if (res.ok) {
+            latestResults = data;
+            document.getElementById("download-report-btn").disabled = false;
             // Display embodied carbon results if materials were provided
             if (data.embodied && data.embodied.total_kgCO2e > 0) {
               embodiedResultsBox.style.display = "block";
@@ -1263,6 +1269,102 @@
 
         submitBtn.disabled = false;
         submitBtn.textContent = "Calculate";
+      });
+
+      function formatReportNumber(value, decimals = 1) {
+        if (value === null || value === undefined || isNaN(value)) {
+          return "N/A";
+        }
+        return Number(value).toLocaleString("en-US", { maximumFractionDigits: decimals });
+      }
+
+      function buildReportHtml(data) {
+        const location = data.location || {};
+        const assumptions = data.assumptions || {};
+        const embodied = data.embodied || {};
+        const transport = data.transport || {};
+        const construction = data.construction || {};
+        const replacements = data.replacements || {};
+        const lifetime = data.lifetime || {};
+
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Whole-Life Carbon Report</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 2rem; color: #0f172a; }
+    h1 { color: #b95110; }
+    h2 { color: #059669; margin-top: 2rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.5rem; text-align: left; }
+    th { background: #f8fafc; }
+    .note { color: #475569; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Whole-Life Carbon Report</h1>
+  <p class="note">Generated from the Solar Carbon Footprint Calculator.</p>
+
+  <h2>Project Location</h2>
+  <table>
+    <tr><th>Latitude</th><td>${formatReportNumber(location.lat, 5)}</td></tr>
+    <tr><th>Longitude</th><td>${formatReportNumber(location.lon, 5)}</td></tr>
+  </table>
+
+  <h2>System Assumptions</h2>
+  <table>
+    <tr><th>Area (m²)</th><td>${formatReportNumber(assumptions.area_m2)}</td></tr>
+    <tr><th>Module Efficiency</th><td>${formatReportNumber((assumptions.module_efficiency || 0) * 100, 1)}%</td></tr>
+    <tr><th>Capacity (kWp)</th><td>${formatReportNumber(assumptions.equivalent_capacity_kwp)}</td></tr>
+    <tr><th>Grid Factor (kgCO₂e/kWh)</th><td>${formatReportNumber(assumptions.carbon_factor_kgCO2e_per_kwh, 3)}</td></tr>
+    <tr><th>Grid Factor Source</th><td>${assumptions.carbon_factor_source || "N/A"}</td></tr>
+  </table>
+
+  <h2>Annual Operational Outputs</h2>
+  <table>
+    <tr><th>Annual Generation (kWh)</th><td>${formatReportNumber(data.annual_kwh)}</td></tr>
+    <tr><th>Annual Avoided Emissions (kgCO₂e)</th><td>${formatReportNumber(data.annual_avoided_kgCO2e)}</td></tr>
+    <tr><th>Annual Avoided Emissions (tCO₂e)</th><td>${formatReportNumber(data.annual_avoided_tonnesCO2e, 3)}</td></tr>
+  </table>
+
+  <h2>Embodied & Construction</h2>
+  <table>
+    <tr><th>Embodied (A1-A3) kgCO₂e</th><td>${formatReportNumber(embodied.total_kgCO2e)}</td></tr>
+    <tr><th>Transport (A4) kgCO₂e</th><td>${formatReportNumber(transport.total_kgCO2e)}</td></tr>
+    <tr><th>Construction (A5) kgCO₂e</th><td>${formatReportNumber(construction.total_kgCO2e)}</td></tr>
+  </table>
+
+  <h2>Replacements & Degradation (B2-B5)</h2>
+  <table>
+    <tr><th>Replacement Emissions (kgCO₂e)</th><td>${formatReportNumber(replacements.total_kgCO2e)}</td></tr>
+    <tr><th>Lifetime Generation (kWh)</th><td>${formatReportNumber(replacements.lifetime_generation_kwh)}</td></tr>
+    <tr><th>Lifetime Avoided Emissions (tCO₂e)</th><td>${formatReportNumber(replacements.lifetime_avoided_tonnesCO2e, 3)}</td></tr>
+  </table>
+
+  <h2>Lifetime Analysis</h2>
+  <table>
+    <tr><th>Lifetime Avoided Emissions (tCO₂e)</th><td>${formatReportNumber(lifetime.lifetime_avoided_tonnesCO2e, 3)}</td></tr>
+    <tr><th>Net Savings (tCO₂e)</th><td>${formatReportNumber(lifetime.net_savings_tonnesCO2e, 3)}</td></tr>
+    <tr><th>Carbon Payback (years)</th><td>${formatReportNumber(lifetime.carbon_payback_years, 2)}</td></tr>
+  </table>
+</body>
+</html>
+`;
+      }
+
+      document.getElementById("download-report-btn").addEventListener("click", () => {
+        if (!latestResults) return;
+        const reportHtml = buildReportHtml(latestResults);
+        const blob = new Blob([reportHtml], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        const dateStamp = new Date().toISOString().split("T")[0];
+        anchor.href = url;
+        anchor.download = `whole-life-carbon-report-${dateStamp}.html`;
+        anchor.click();
+        URL.revokeObjectURL(url);
       });
     </script>
   </body>
