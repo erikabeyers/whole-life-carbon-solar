@@ -19,15 +19,13 @@ The tool will show you:
  - Embodied carbon from materials (if provided)
  - Transport emissions (if provided)
 
-What's implemented (so far) :
+What's implemented:
  - Embodied carbon (A1-A3) - Manufacturing emissions for materials (aluminium, steel, concrete, glass, silicon, copper)
  - Transport (A4) - Multi-leg transport with different modes (ship, truck, rail, air)
  - Construction & installation (A5) - On-site emissions from equipment, workers, etc.
  - Operational carbon (B6) - PV generation and avoided grid emissions
  - Component replacements (B2-B5) - Inverters, module degradation over lifetime
-
-What's still to come
- - BESS integration - Battery storage systems
+   BESS integration - Battery storage systems
  - Lifetime analysis - Carbon payback period, net savings over project life
 
 Data sources
