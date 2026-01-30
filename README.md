@@ -23,10 +23,10 @@ What's implemented (so far) :
  - Operational carbon (B6) - PV generation and avoided grid emissions
  - Embodied carbon (A1-A3) - Manufacturing emissions for materials (aluminium, steel, concrete, glass, silicon, copper)
  - Transport (A4) - Multi-leg transport with different modes (ship, truck, rail, air)
+ - Component replacements (B2-B5) - Inverters, module degradation over lifetime
 
 What's still to come
  - Construction & installation (A5) - On-site emissions from equipment, workers, etc.
- - Component replacements (B2-B5) - Inverters, module degradation over lifetime
  - BESS integration - Battery storage systems
  - Lifetime analysis - Carbon payback period, net savings over project life
 
@@ -39,5 +39,5 @@ All emission factors come from open, publicly available sources:
  - UK Government GHG Conversion Factors 2024 - Transport emission factors
 
 Tech stack
- - Frontend: HTML, JavaScript, Chart.js, Leaflet (hosted on GitHub Pages
+ - Frontend: HTML, JavaScript, Chart.js, Leaflet (hosted on GitHub Pages)
  - Backend: FastAPI, Python, pvlib (hosted on Railway)

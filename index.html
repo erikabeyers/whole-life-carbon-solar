@@ -506,12 +506,33 @@
               <option value="simple">Simple (% of embodied carbon)</option>
               <option value="detailed">Detailed (itemized activities)</option>
             </select>
-            
+          <!-- Simple method inputs -->
             <div id="simple-method-inputs">
               <label>Percentage of A1-A3 (%):</label>
               <input name="construction.percentage" type="number" step="0.1" value="5.0" />
               <div class="helper-text">Typical range: 3-7% for solar PV</div>
             </div>
+          <!-- Detailed method inputs -->
+            <div id="detailed-method-inputs" style="display:none;">
+              <p class="helper-text">Add equipment usage and worker/site activity details.</p>
+
+              <div id="equipment-usage-container"></div>
+              <button type="button" id="add-equipment-btn" class="btn-secondary">+ Add Equipment Usage</button>
+
+              <label>Worker transport (km per worker per day):</label>
+              <input name="construction.worker_transport_km" type="number" step="0.1" value="0" />
+              <div class="helper-text">Daily round-trip distance for each worker</div>
+
+              <label>Number of workers:</label>
+              <input name="construction.num_workers" type="number" step="1" value="0" />
+
+              <label>Number of working days:</label>
+              <input name="construction.num_days" type="number" step="1" value="0" />
+
+              <label>Grid electricity on site (kWh):</label>
+              <input name="construction.grid_electricity_kwh" type="number" step="0.1" value="0" />
+            </div>
+
           </div>
         </div>
 
@@ -610,12 +631,31 @@
 
       // Collapsible section toggle for construction
       document.getElementById("construction-section").addEventListener("click", function(e) {
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'BUTTON') {
           this.classList.toggle("active");
           const toggle = this.querySelector(".collapsible-toggle");
           toggle.textContent = this.classList.contains("active") ? "−" : "+";
         }
       });
+
+        // Construction method toggle
+      const constructionMethodSelect = document.getElementById("construction-method");
+      const simpleMethodInputs = document.getElementById("simple-method-inputs");
+      const detailedMethodInputs = document.getElementById("detailed-method-inputs");
+
+      function updateConstructionMethodUI() {
+        const method = constructionMethodSelect.value;
+        if (method === "detailed") {
+          simpleMethodInputs.style.display = "none";
+          detailedMethodInputs.style.display = "block";
+        } else {
+          simpleMethodInputs.style.display = "block";
+          detailedMethodInputs.style.display = "none";
+        }
+      }
+
+      constructionMethodSelect.addEventListener("change", updateConstructionMethodUI);
+      updateConstructionMethodUI();
 
       // Collapsible section toggle for replacements
       document.getElementById("replacements-section").addEventListener("click", function(e) {
@@ -668,6 +708,44 @@
 
       // Add transport leg button
       document.getElementById("add-transport-leg-btn").addEventListener("click", addTransportLeg);
+
+      // Equipment usage functionality
+      let equipmentUsageCount = 0;
+
+      function addEquipmentUsage() {
+        equipmentUsageCount++;
+        const container = document.getElementById("equipment-usage-container");
+
+        const usageDiv = document.createElement("div");
+        usageDiv.className = "transport-leg";
+        usageDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <strong style="color: #059669;">Equipment ${equipmentUsageCount}</strong>
+            <button type="button" class="remove-leg-btn" style="margin: 0;">Remove</button>
+          </div>
+
+          <label style="margin-top: 0;">Equipment type:</label>
+          <select name="construction.equipment_usage.${equipmentUsageCount}.equipment_type" required style="margin-bottom: 0.5rem;">
+            <option value="mobile_crane_medium">Mobile crane (medium)</option>
+            <option value="mobile_crane_large">Mobile crane (large)</option>
+            <option value="excavator_medium">Excavator (medium)</option>
+            <option value="forklift_diesel">Forklift (diesel)</option>
+            <option value="telehandler">Telehandler</option>
+            <option value="generator_small">Generator (small)</option>
+            <option value="generator_medium">Generator (medium)</option>
+          </select>
+
+          <label>Hours used:</label>
+          <input name="construction.equipment_usage.${equipmentUsageCount}.hours" type="number" step="0.1" required />
+        `;
+
+        container.appendChild(usageDiv);
+        usageDiv.querySelector(".remove-leg-btn").addEventListener("click", function() {
+          usageDiv.remove();
+        });
+      }
+
+      document.getElementById("add-equipment-btn").addEventListener("click", addEquipmentUsage);
 
       // Add one transport leg by default when section is opened (only once)
       let transportSectionOpened = false;
@@ -883,6 +961,27 @@
               payload.construction[field] = val;
             } else if (field === "percentage") {
               payload.construction[field] = parseFloat(val);
+               } else if (field.startsWith("equipment_usage.")) {
+              const match = field.match(/equipment_usage\.(\d+)\.(.+)/);
+              if (match) {
+                if (!payload.construction.equipment_usage) {
+                  payload.construction.equipment_usage = [];
+                }
+                const usageIndex = parseInt(match[1]) - 1;
+                const usageField = match[2];
+
+                if (!payload.construction.equipment_usage[usageIndex]) {
+                  payload.construction.equipment_usage[usageIndex] = {};
+                }
+
+                if (usageField === "equipment_type") {
+                  payload.construction.equipment_usage[usageIndex][usageField] = val;
+                } else {
+                  payload.construction.equipment_usage[usageIndex][usageField] = parseFloat(val);
+                }
+              }
+            } else {
+              payload.construction[field] = parseFloat(val);
             }
           }
 
@@ -920,6 +1019,15 @@
         }
 
         // Clean up construction object if it's incomplete or empty
+          if (payload.construction && payload.construction.equipment_usage) {
+          payload.construction.equipment_usage = payload.construction.equipment_usage.filter(
+            usage => usage && usage.equipment_type
+          );
+          if (payload.construction.equipment_usage.length === 0) {
+            delete payload.construction.equipment_usage;
+          }
+        }
+
         if (payload.construction && !payload.construction.method) {
           delete payload.construction;
         }
