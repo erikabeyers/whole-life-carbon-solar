@@ -337,21 +337,8 @@ def calculate(input: SolarInput) -> Dict[str, Any]:
         carbon_factor,
     )
 
-    system_lifetime_years = 25
-    if input.replacements and input.replacements.system_lifetime_years:
-        system_lifetime_years = input.replacements.system_lifetime_years
-
-    lifetime_analysis = calculate_lifetime_analysis(
-        annual_avoided_kgCO2e=avoided_total_kg,
-        embodied_kgCO2e=embodied_carbon["total_kgCO2e"],
-        transport_kgCO2e=transport_emissions["total_kgCO2e"],
-        construction_kgCO2e=construction_emissions["total_kgCO2e"],
-        replacement_kgCO2e=replacement_emissions["total_kgCO2e"],
-        system_lifetime_years=system_lifetime_years,
-    )
-
     # ---------------------------------------------------------------------
-    # BESS Emissions
+    # BESS & Lifetime Emissions
     # ---------------------------------------------------------------------
     bess_emissions = calculate_bess_emissions(input.bess)
 
