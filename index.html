@@ -676,6 +676,13 @@
         <canvas id="co2Chart" width="600" height="300"></canvas>
       </div>
 
+      <div class="chart-container" id="breakdown-chart-container" style="display:none;">
+      <h3 style="text-align: center; color: #0891b2; margin: 0 0 1rem 0;">
+        Whole-Life Carbon Breakdown
+      </h3>
+      <canvas id="breakdownChart" width="600" height="400"></canvas>
+      </div>
+
       <div id="comparison"></div>
       <div id="meta" class="meta" style="display:none;"></div>
     </div>
@@ -698,9 +705,11 @@
       const recommendationBox = document.getElementById("recommendation");
       const ctxPV = document.getElementById("pvChart").getContext("2d");
       const ctxCO2 = document.getElementById("co2Chart").getContext("2d");
+      const ctxBreakdown = document.getElementById("breakdownChart").getContext("2d");
       let pvChartInstance = null;
       let co2ChartInstance = null;
       let latestResults = null;
+      let breakdownChartInstance = null; 
 
       // Transport leg counter
       let transportLegCount = 0;
@@ -1027,6 +1036,7 @@
        
         document.getElementById("pv-chart-container").style.display = "none";
         document.getElementById("co2-chart-container").style.display = "none";
+        document.getElementById("breakdown-chart-container").style.display = "none";
 
         const formData = new FormData(form);
         const payload = {
@@ -1408,6 +1418,98 @@
               responsive: true
                 },
             });  
+          
+            // --- Whole-life carbon breakdown pie chart ---
+            const embodiedTotal = data.embodied?.total_kgCO2e || 0;
+            const transportTotal = data.transport?.total_kgCO2e || 0;
+            const constructionTotal = data.construction?.total_kgCO2e || 0;
+            const replacementsTotal = data.replacements?.total_kgCO2e || 0;
+            const bessTotal = data.bess?.total_kgCO2e || 0;
+
+            // Only show chart if there's data to display
+            const totalEmissions = embodiedTotal + transportTotal + constructionTotal + replacementsTotal + bessTotal;
+
+            if (totalEmissions > 0) {
+              document.getElementById("breakdown-chart-container").style.display = "block";
+              
+              if (breakdownChartInstance) breakdownChartInstance.destroy();
+
+              const breakdownData = [];
+              const breakdownLabels = [];
+              const breakdownColors = [];
+              
+              if (embodiedTotal > 0) {
+                breakdownLabels.push('Embodied (A1-A3)');
+                breakdownData.push(embodiedTotal);
+                breakdownColors.push('#f59e0b'); // Amber
+              }
+              
+              if (transportTotal > 0) {
+                breakdownLabels.push('Transport (A4)');
+                breakdownData.push(transportTotal);
+                breakdownColors.push('#8b5cf6'); // Purple
+              }
+              
+              if (constructionTotal > 0) {
+                breakdownLabels.push('Construction (A5)');
+                breakdownData.push(constructionTotal);
+                breakdownColors.push('#3b82f6'); // Blue
+              }
+              
+              if (replacementsTotal > 0) {
+                breakdownLabels.push('Replacements (B2-B5)');
+                breakdownData.push(replacementsTotal);
+                breakdownColors.push('#ec4899'); // Pink
+              }
+              
+              if (bessTotal > 0) {
+                breakdownLabels.push('BESS');
+                breakdownData.push(bessTotal);
+                breakdownColors.push('#10b981'); // Green
+              }
+
+              breakdownChartInstance = new Chart(ctxBreakdown, {
+                type: "doughnut",
+                data: {
+                  labels: breakdownLabels,
+                  datasets: [{
+                    data: breakdownData,
+                    backgroundColor: breakdownColors,
+                    borderColor: '#ffffff',
+                    borderWidth: 3
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  cutout: '60%',
+                  plugins: {
+                    legend: {
+                      position: 'right',
+                      labels: {
+                        padding: 15,
+                        font: {
+                          size: 13,
+                          family: "'Inter', sans-serif"
+                        }
+                      }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const label = context.label || '';
+                          const value = context.parsed || 0;
+                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                          const percentage = ((value / total) * 100).toFixed(1);
+                          return `${label}: ${formatNumber(value)} kgCO₂e (${percentage}%)`;
+                        }
+                      }
+                    }
+                  }
+                }
+              });
+            }
+
           } else {
             comparisonBox.innerHTML = "⚠️ Error: " + (data.detail || "Unknown");
           }
